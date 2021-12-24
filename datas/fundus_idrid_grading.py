@@ -50,10 +50,11 @@ class DatasetGenerator(Dataset):
             label = np.zeros(len(self.CLASS_NAMES)) #one-hot
             label[int(data[1])] = 1
             label_list.append(label)
+            #label_list.append(int(data[1]))
 
         self.image_list = image_list
         self.label_list = label_list
-        self.transform_seq = transforms.Compose([transforms.Resize((256,256)),transforms.ToTensor()])
+        self.transform_seq = transforms.Compose([transforms.Resize((224,224)),transforms.ToTensor()])
 
     def __getitem__(self, index):
         """
@@ -66,6 +67,7 @@ class DatasetGenerator(Dataset):
         image = self.transform_seq(Image.open(image).convert('RGB'))
         label = self.label_list[index]
         label = torch.as_tensor(label, dtype=torch.float32)
+        #label = torch.as_tensor(label, dtype=torch.long)
   
         return image, label
 
@@ -77,13 +79,15 @@ PATH_TO_IMAGES_DIR_TEST = '/data/fjsdata/fundus/IDRID/BDiseaseGrading/OriginalIm
 PATH_TO_LABELS_DIR_TRAIN = '/data/fjsdata/fundus/IDRID/BDiseaseGrading/Groundtruths/IDRiD_Grading_Training.csv'
 PATH_TO_LABELS_DIR_TEST = '/data/fjsdata/fundus/IDRID/BDiseaseGrading/Groundtruths/IDRiD_Grading_Testing.csv'
 
-def get_train_dataset_fundus():
+def get_train_dataset_fundus(batch_size, shuffle, num_workers):
     dataset_train = DatasetGenerator(path_to_img_dir=PATH_TO_IMAGES_DIR_TRAIN, path_to_lbl_dir=PATH_TO_LABELS_DIR_TRAIN)
-    return dataset_train
+    data_loader_train = DataLoader(dataset=dataset_train, batch_size=batch_size,shuffle=shuffle, num_workers=num_workers, pin_memory=True)
+    return data_loader_train
 
-def get_test_dataset_fundus():
+def get_test_dataset_fundus(batch_size, shuffle, num_workers):
     dataset_test = DatasetGenerator(path_to_img_dir=PATH_TO_IMAGES_DIR_TEST, path_to_lbl_dir=PATH_TO_LABELS_DIR_TEST)
-    return dataset_test
+    data_loader_test = DataLoader(dataset=dataset_test, batch_size=batch_size,shuffle=shuffle, num_workers=num_workers, pin_memory=True)
+    return data_loader_test
 
 def get_dataset_fundus():
     dataset_train = DatasetGenerator(path_to_img_dir=PATH_TO_IMAGES_DIR_TRAIN, path_to_lbl_dir=PATH_TO_LABELS_DIR_TRAIN)

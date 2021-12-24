@@ -90,21 +90,25 @@ class MRE(nn.Module):
     def __init__(self, img_size =224, patch_size = 8, num_classes=1000, in_channels = 3, out_channels = 16, mask_ratio=0.75):
         super(MRE, self).__init__()
 
+        self.glbconv = partial(torchvision_models.__dict__['resnet50'], zero_init_residual=True)(num_classes=num_classes)
+        self.sigmoid = nn.Sigmoid()
+        #dynamic region-aware convolution
+        #self.regconv = OrderedDict([])
+        #for i in range(self.num_patches):
+        #    block = DynConv(in_channels, out_channels)
+        #    self.regconv.update({'regblock%d' % (i + 1): block})
+        """
         assert 0. < mask_ratio < 1., f'mask ratio must be kept between 0 and 1, got: {mask_ratio}'
         self.mask_ratio = mask_ratio
         assert img_size%patch_size == 0, f'img_size must be dividede with no remainder by patch_size, got: {patch_size}'
         self.patch_size = patch_size
         self.num_patches = img_size//patch_size
-
-        self.glbconv = partial(torchvision_models.__dict__['resnet50'], zero_init_residual=True)(num_classes=num_classes)
-        #dynamic region-aware convolution
         dim = patch_size*patch_size*self.num_patches*in_channels
         self.regtrans = Transformer(dim=dim, depth=6, heads=16, dim_head=64, mlp_dim=2048)
-        self.regconv = OrderedDict([])
-        for i in range(self.num_patches):
-            block = DynConv(in_channels, out_channels)
-            self.regconv.update({'regblock%d' % (i + 1): block})
-
+        self.to_latent = nn.Identity()
+        self.mlp_head = nn.Sequential(nn.LayerNorm(dim), nn.Linear(dim, num_classes), nn.Sigmoid())
+        """
+        """
         # Official init from torch repo.
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -114,11 +118,12 @@ class MRE(nn.Module):
                 nn.init.constant_(m.bias, 0)
             #elif isinstance(m, nn.Linear):
             #    nn.init.constant_(m.bias, 0)
-
+        """
     def forward(self, x):
 
         glb_out =  self.glbconv(x)
-
+        return self.sigmoid(glb_out)
+        """
         b, c, h, w = x.shape
         # (b, c=3, h, w)->(b, n_patches, patch_size**2 * c)
         patches = x.view(
@@ -128,8 +133,12 @@ class MRE(nn.Module):
         ).permute(0, 2, 4, 3, 5, 1).reshape(b, self.num_patches, -1)
         reg_out = self.regtrans(patches)
 
-        return reg_out
+        reg_out = reg_out.mean(dim = 1)
+        reg_out = self.to_latent(reg_out)
+        reg_out = self.mlp_head(reg_out)
 
+        return reg_out
+        """
 
 if __name__ == '__main__':
     #x = torch.rand(2, 3,14,14).cuda()
@@ -137,6 +146,6 @@ if __name__ == '__main__':
     #out = dconv(x)
     #print(out.shape)
     x = torch.rand(2, 3, 224 ,224).cuda()
-    mre = MRE().cuda()
+    mre = MRE(num_classes=5).cuda()
     out = mre(x)
     print(out.shape)
