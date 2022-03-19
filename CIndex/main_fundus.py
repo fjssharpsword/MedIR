@@ -31,18 +31,19 @@ from sklearn.metrics import roc_auc_score, roc_curve, auc, f1_score, confusion_m
 from mre import MRE
 from fundus import get_train_dataset_fundus, get_test_dataset_fundus
 from pytorch_metric_learning import losses
+from centroid_triplet_loss import CentroidTripletLoss
 from cindex_triplet_loss import CIndexTripletLoss 
 
 #config
 os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
 CLASS_NAMES = ['Normal', "Mild NPDR", 'Moderate NPDR', 'Severe NPDR', 'PDR']
 CKPT_PATH = '/data/pycode/MedIR/CIndex/ckpts/mre_fundus.pkl'
-MAX_EPOCHS = 100
+MAX_EPOCHS = 20
 #nohup python main_fundus.py > logs/main_fundus.log 2>&1 &
 def Train():
     print('********************load data********************')
-    dataloader_train = get_train_dataset_fundus(batch_size=128, shuffle=True, num_workers=1)
-    dataloader_test = get_test_dataset_fundus(batch_size=128, shuffle=False, num_workers=1)
+    dataloader_train = get_train_dataset_fundus(batch_size=32, shuffle=True, num_workers=1)
+    dataloader_test = get_test_dataset_fundus(batch_size=32, shuffle=False, num_workers=1)
     print('********************load data succeed!********************')
 
     print('********************load model********************')
@@ -59,10 +60,11 @@ def Train():
     #optional loss functions
     #criterion = losses.TripletMarginLoss(margin=0.05, swap=False, smooth_loss=False, triplets_per_anchor="all").cuda()
     #criterion = losses.CentroidTripletLoss(margin=0.05, swap=False, smooth_loss=False, triplets_per_anchor="all").cuda() #large batch_size
+    criterion = CentroidTripletLoss(margin=0.05, swap=False, smooth_loss=False, triplets_per_anchor="all").cuda()
     #criterion = losses.SoftTripleLoss(num_classes=5, embedding_size=512, centers_per_class=10, la=20, gamma=0.1, margin=0.01).cuda()
     #criterion = losses.CircleLoss(m=0.4, gamma=80).cuda()
     #criterion = losses.ContrastiveLoss(pos_margin=0, neg_margin=1).cuda()
-    criterion = CIndexTripletLoss().cuda() #ours
+    #criterion = CIndexTripletLoss().cuda() #ours
     print('********************load model succeed!********************')
 
     print('********************begin training!********************')
@@ -90,7 +92,7 @@ def Train():
                 sys.stdout.flush()
         lr_scheduler_model.step()  #about lr and gamma
         print("\r Eopch: %5d train loss = %.6f" % (epoch + 1, np.mean(loss_train) ))
-
+        """
         model.eval()#turn to test mode
         loss_test = []
         with torch.autograd.no_grad():
@@ -103,9 +105,9 @@ def Train():
                 sys.stdout.write('\r testing process: = {}'.format(batch_idx+1))
                 sys.stdout.flush()
         print("\r Eopch: %5d test loss = %.6f" % (epoch + 1, np.mean(loss_test) ))
-
-        if loss_min > np.mean(loss_test):
-            loss_min = np.mean(loss_test)
+        """
+        if loss_min > np.mean(loss_train):
+            loss_min = np.mean(loss_train)
             torch.save(model.module.state_dict(), CKPT_PATH) #Saving torch.nn.DataParallel Models
             print(' Epoch: {} model has been already save!'.format(epoch + 1))
 
