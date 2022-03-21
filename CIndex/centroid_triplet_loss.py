@@ -9,6 +9,7 @@ from pytorch_metric_learning.utils import loss_and_miner_utils as lmu
 from pytorch_metric_learning.losses.base_metric_loss_function import BaseMetricLossFunction
 from pytorch_metric_learning.losses.triplet_margin_loss import TripletMarginLoss
 
+#https://github.com/KevinMusgrave/pytorch-metric-learning/issues/451 
 
 def concat_indices_tuple(x):
     return [torch.cat(y) for y in zip(*x)]
@@ -116,14 +117,13 @@ class CentroidTripletLoss(BaseMetricLossFunction):
                 2. make pos_centroids be only used as a positive example
                 3. negative as so
                 """
-                #added by Jason.Fang
-                for x in indices_tuple:
-                    dd = len(x)//len(one_labels)
-                    ??
-                indices_tuple = [x[: len(one_labels)*(len(x)//len(one_labels))] for x in indices_tuple]
-
                 # make only query vectors be anchor vectors
                 indices_tuple = [x[: len(x) // 3] + starting_idx for x in indices_tuple]
+
+                #added by Jason.Fang
+                remainder = len(indices_tuple[0])%len(one_labels) #can not be divisible
+                #quotient = len(indices_tuple[0])//len(one_labels)
+                indices_tuple = [x[: len(indices_tuple[0])-remainder] for x in indices_tuple]
 
                 # make only pos_centroids be postive examples
                 indices_tuple = [x.view(len(one_labels), -1) for x in indices_tuple]
@@ -181,3 +181,7 @@ class CentroidTripletLoss(BaseMetricLossFunction):
 
     def get_default_reducer(self):
         return AvgNonZeroReducer()
+
+if __name__ == "__main__":
+    print(52//3)
+    print(52%3)
