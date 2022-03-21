@@ -116,6 +116,12 @@ class CentroidTripletLoss(BaseMetricLossFunction):
                 2. make pos_centroids be only used as a positive example
                 3. negative as so
                 """
+                #added by Jason.Fang
+                for x in indices_tuple:
+                    dd = len(x)//len(one_labels)
+                    ??
+                indices_tuple = [x[: len(one_labels)*(len(x)//len(one_labels))] for x in indices_tuple]
+
                 # make only query vectors be anchor vectors
                 indices_tuple = [x[: len(x) // 3] + starting_idx for x in indices_tuple]
 
@@ -124,9 +130,7 @@ class CentroidTripletLoss(BaseMetricLossFunction):
                 indices_tuple = [x.chunk(2, dim=1)[0] for x in indices_tuple]
 
                 # make only neg_centroids be negative examples
-                indices_tuple = [
-                    x.chunk(len(one_labels), dim=1)[-1].flatten() for x in indices_tuple
-                ]
+                indices_tuple = [x.chunk(len(one_labels), dim=1)[-1].flatten() for x in indices_tuple]
 
                 tuple_indices_collect.append(indices_tuple)
                 embeddings_collect.append(embeddings_concat)
