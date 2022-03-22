@@ -1,8 +1,8 @@
 # encoding: utf-8
 """
-Training implementation for MRE
+Training implementation for VIN-CXR Retrieval
 Author: Jason.Fang
-Update time: 23/12/2021
+Update time: 22/03/2022
 """
 import re
 import sys
@@ -28,27 +28,31 @@ import seaborn as sns
 from sklearn.metrics import ndcg_score
 from sklearn.metrics import roc_auc_score, roc_curve, auc, f1_score, confusion_matrix, accuracy_score
 #self-defined
-from mre import MRE
-from fundus import get_train_dataset_fundus, get_test_dataset_fundus
+from resnet import resnet50
+from vit import ViT
+from vincxr_cls import get_box_dataloader_VIN
 from pytorch_metric_learning import losses
 from centroid_triplet_loss import CentroidTripletLoss
 from cindex_triplet_loss import CIndexTripletLoss 
 
 #config
 os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
-CLASS_NAMES = ['Normal', "Mild NPDR", 'Moderate NPDR', 'Severe NPDR', 'PDR']
-CKPT_PATH = '/data/pycode/MedIR/CIndex/ckpts/mre_fundus.pkl'
-MAX_EPOCHS = 20
-#nohup python main_fundus.py > logs/main_fundus.log 2>&1 &
+CLASS_NAMES = ['No finding', 'Aortic enlargement', 'Atelectasis', 'Calcification','Cardiomegaly', 'Consolidation', 'ILD', 'Infiltration', \
+                'Lung Opacity', 'Nodule/Mass', 'Other lesion', 'Pleural effusion', 'Pleural thickening', 'Pneumothorax', 'Pulmonary fibrosis']
+CKPT_PATH = '/data/pycode/MedIR/CIndex/ckpts/vincxr_resnet50.pkl'
+MAX_EPOCHS = 30
+BATCH_SIZE = 16*8
+#nohup python main_vincxr.py > logs/main_vincxr.log 2>&1 &
 def Train():
     print('********************load data********************')
-    dataloader_train = get_train_dataset_fundus(batch_size=32, shuffle=True, num_workers=1)
-    dataloader_test = get_test_dataset_fundus(batch_size=32, shuffle=False, num_workers=1)
+    train_loader = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
+    print ('==>>> total trainning batch number: {}'.format(len(train_loader)))
     print('********************load data succeed!********************')
 
     print('********************load model********************')
     # initialize and load the model
-    model = MRE(feat_len=512).cuda()
+    model = resnet50(pretrained=False, num_classes=len(CLASS_NAMES)*20).cuda()
+    #model = ViT(image_size = 224, patch_size = 32, num_classes = len(CLASS_NAMES)*20, dim = 1024, depth = 6,heads = 16, mlp_dim = 2048).cuda()
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
         model.load_state_dict(checkpoint) #strict=False
@@ -75,7 +79,7 @@ def Train():
         model.train()  #set model to training mode
         loss_train = []
         with torch.autograd.enable_grad():
-            for batch_idx, (image, label) in enumerate(dataloader_train):
+            for batch_idx, (image, label) in enumerate(train_loader):
                 optimizer.zero_grad()
                 #forward
                 var_image = torch.autograd.Variable(image).cuda()
@@ -91,20 +95,7 @@ def Train():
                 sys.stdout.flush()
         lr_scheduler_model.step()  #about lr and gamma
         print("\r Eopch: %5d train loss = %.6f" % (epoch + 1, np.mean(loss_train) ))
-        """
-        model.eval()#turn to test mode
-        loss_test = []
-        with torch.autograd.no_grad():
-            for batch_idx, (image, label) in enumerate(dataloader_test):
-                var_image = torch.autograd.Variable(image).cuda()
-                var_label = torch.autograd.Variable(label).cuda()
-                var_output = model(var_image)#forward
-                loss_test_idx = criterion.forward(var_output, var_label)
-                loss_test.append(loss_test_idx.item())
-                sys.stdout.write('\r testing process: = {}'.format(batch_idx+1))
-                sys.stdout.flush()
-        print("\r Eopch: %5d test loss = %.6f" % (epoch + 1, np.mean(loss_test) ))
-        """
+        
         if loss_min > np.mean(loss_train):
             loss_min = np.mean(loss_train)
             torch.save(model.module.state_dict(), CKPT_PATH) #Saving torch.nn.DataParallel Models
@@ -115,12 +106,13 @@ def Train():
 
 def Test():
     print('********************load data********************')
-    dataloader_train = get_train_dataset_fundus(batch_size=8, shuffle=False, num_workers=1)
-    dataloader_test = get_test_dataset_fundus(batch_size=8, shuffle=False, num_workers=1)
+    test_loader = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
+    print ('==>>> total test batch number: {}'.format(len(test_loader)))
     print('********************load data succeed!********************')
 
     print('********************load model********************')
-    model = MRE(feat_len=512).cuda()
+    model = resnet50(pretrained=False, num_classes=len(CLASS_NAMES)*20).cuda()
+    #model = ViT(image_size = 224, patch_size = 32, num_classes = len(CLASS_NAMES)*20, dim = 1024, depth = 6,heads = 16, mlp_dim = 2048).cuda()
     criterion = CIndexTripletLoss().cuda() #ours
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
@@ -133,7 +125,7 @@ def Test():
     tr_label = torch.FloatTensor().cuda()
     tr_feat = torch.FloatTensor().cuda()
     with torch.autograd.no_grad():
-        for batch_idx, (image, label) in enumerate(dataloader_train):
+        for batch_idx, (image, label) in enumerate(test_loader):
             tr_label = torch.cat((tr_label, label.cuda()), 0)
             var_image = torch.autograd.Variable(image).cuda()
             var_feat = model(var_image)
@@ -160,7 +152,7 @@ def Test():
     te_label = te_label.cpu().numpy()
     tr_label = tr_label.cpu().numpy()
 
-    for topk in [5,10]:
+    for topk in [1, 5, 10]:
         mHRs_avg = []
         mAPs_avg = []
         for i in range(sim_mat.shape[0]):
@@ -185,11 +177,11 @@ def Test():
             sys.stdout.flush()
 
         #Hit ratio
-        print("MRE Average mHR@{}={:.4f}".format(topk, np.mean(mHRs_avg)))
+        print("MRE Average mHR@{}={:.2f}".format(topk, np.mean(mHRs_avg)*100))
         #average precision
-        print("MRE Average mAP@{}={:.4f}".format(topk, np.mean(mAPs_avg)))
+        print("MRE Average mAP@{}={:.2f}".format(topk, np.mean(mAPs_avg)*100))
     #C-Index Score
-    print("MRE Average CI={:.4f}".format(np.mean(ci_score)))
+    print("MRE Average CI={:.2f}".format(np.mean(ci_score)*100))
 
 def main():
     Train() #for training
