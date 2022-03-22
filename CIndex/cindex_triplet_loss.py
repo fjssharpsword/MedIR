@@ -77,7 +77,7 @@ class CIndexTripletLoss(BaseMetricLossFunction):
         indices_tuple = lmu.convert_to_triplets(indices_tuple, labels, ref_labels, t_per_anchor=self.triplets_per_anchor)
         anchor_idx, positive_idx, negative_idx = indices_tuple
         if len(anchor_idx) == 0:
-            return self.zero_losses()
+            return torch.tensor(-1.0)
         mat = self.distance(embeddings, ref_emb)
         ap_dists = mat[anchor_idx, positive_idx]
         an_dists = mat[anchor_idx, negative_idx]

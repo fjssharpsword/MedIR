@@ -40,9 +40,9 @@ os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
 CLASS_NAMES = ['No finding', 'Aortic enlargement', 'Atelectasis', 'Calcification','Cardiomegaly', 'Consolidation', 'ILD', 'Infiltration', \
                 'Lung Opacity', 'Nodule/Mass', 'Other lesion', 'Pleural effusion', 'Pleural thickening', 'Pneumothorax', 'Pulmonary fibrosis']
 CKPT_PATH = '/data/pycode/MedIR/CIndex/ckpts/vincxr_resnet50.pkl'
-MAX_EPOCHS = 30
+MAX_EPOCHS = 50
 BATCH_SIZE = 16*8
-#nohup python main_vincxr.py > logs/main_vincxr.log 2>&1 &
+#nohup python main_vincxr.py > logs/main_vincxr.log 2>&1 &  #3.22: PID=47993
 def Train():
     print('********************load data********************')
     train_loader = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
@@ -106,7 +106,9 @@ def Train():
 
 def Test():
     print('********************load data********************')
+    train_loader = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
     test_loader = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
+    print ('==>>> total trainning batch number: {}'.format(len(train_loader)))
     print ('==>>> total test batch number: {}'.format(len(test_loader)))
     print('********************load data succeed!********************')
 
@@ -125,7 +127,7 @@ def Test():
     tr_label = torch.FloatTensor().cuda()
     tr_feat = torch.FloatTensor().cuda()
     with torch.autograd.no_grad():
-        for batch_idx, (image, label) in enumerate(test_loader):
+        for batch_idx, (image, label) in enumerate(train_loader):
             tr_label = torch.cat((tr_label, label.cuda()), 0)
             var_image = torch.autograd.Variable(image).cuda()
             var_feat = model(var_image)
@@ -137,13 +139,14 @@ def Test():
     te_feat = torch.FloatTensor().cuda()
     ci_score = []
     with torch.autograd.no_grad():
-        for batch_idx, (image, label) in enumerate(dataloader_test):
+        for batch_idx, (image, label) in enumerate(test_loader):
             te_label = torch.cat((te_label, label.cuda()), 0)
             var_image = torch.autograd.Variable(image).cuda()
             var_label = torch.autograd.Variable(label).cuda()
             var_feat = model(var_image)
             te_feat = torch.cat((te_feat, var_feat.data), 0)
-            ci_score.append(criterion.compute_CIScore(var_feat, var_label).item()) #C-index metrci
+            ci_score_batch = criterion.compute_CIScore(var_feat, var_label).item()
+            if ci_score_batch >= 0.0: ci_score.append(ci_score_batch) #C-index metrci
             sys.stdout.write('\r test set process: = {}'.format(batch_idx + 1))
             sys.stdout.flush()
 
@@ -177,11 +180,11 @@ def Test():
             sys.stdout.flush()
 
         #Hit ratio
-        print("MRE Average mHR@{}={:.2f}".format(topk, np.mean(mHRs_avg)*100))
+        print("Average HR@{}={:.2f}".format(topk, np.mean(mHRs_avg)*100))
         #average precision
-        print("MRE Average mAP@{}={:.2f}".format(topk, np.mean(mAPs_avg)*100))
+        print("Average AP@{}={:.2f}".format(topk, np.mean(mAPs_avg)*100))
     #C-Index Score
-    print("MRE Average CI={:.2f}".format(np.mean(ci_score)*100))
+    print("Average CI={:.2f}".format(np.mean(ci_score)*100))
 
 def main():
     Train() #for training
