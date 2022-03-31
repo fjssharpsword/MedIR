@@ -39,10 +39,10 @@ from cindex_triplet_loss import CIndexTripletLoss
 os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
 CLASS_NAMES = ['No finding', 'Aortic enlargement', 'Atelectasis', 'Calcification','Cardiomegaly', 'Consolidation', 'ILD', 'Infiltration', \
                 'Lung Opacity', 'Nodule/Mass', 'Other lesion', 'Pleural effusion', 'Pleural thickening', 'Pneumothorax', 'Pulmonary fibrosis']
-CKPT_PATH = '/data/pycode/MedIR/CIndex/ckpts/vincxr_resnet50.pkl'
+CKPT_PATH = '/data/pycode/MedIR/CIndex/ckpts/vincxr_vit.pkl'
 MAX_EPOCHS = 50
 BATCH_SIZE = 16*8
-#nohup python main_vincxr.py > logs/main_vincxr.log 2>&1 &  #3.22: PID=47993
+#nohup python main_vincxr.py > logs/main_vincxr.log 2>&1 & 
 def Train():
     print('********************load data********************')
     train_loader = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
@@ -51,8 +51,8 @@ def Train():
 
     print('********************load model********************')
     # initialize and load the model
-    model = resnet50(pretrained=False, num_classes=len(CLASS_NAMES)*20).cuda()
-    #model = ViT(image_size = 224, patch_size = 32, num_classes = len(CLASS_NAMES)*20, dim = 1024, depth = 6,heads = 16, mlp_dim = 2048).cuda()
+    #model = resnet50(pretrained=False, num_classes=len(CLASS_NAMES)*20).cuda()
+    model = ViT(image_size = 224, patch_size = 32, num_classes = len(CLASS_NAMES)*20, dim = 1024, depth = 6,heads = 16, mlp_dim = 2048).cuda()
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
         model.load_state_dict(checkpoint) #strict=False
@@ -62,11 +62,12 @@ def Train():
     optimizer = optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.999), eps=1e-08, weight_decay=1e-5)
     lr_scheduler_model = lr_scheduler.StepLR(optimizer, step_size=10, gamma=1)
     #optional loss functions
+    #criterion = losses.AngularLoss(alpha=40).cuda()
+    #criterion = losses.ContrastiveLoss(pos_margin=0, neg_margin=1).cuda()
     #criterion = losses.TripletMarginLoss(margin=0.05, swap=False, smooth_loss=False, triplets_per_anchor="all").cuda()
     #criterion = CentroidTripletLoss(margin=0.05, swap=False, smooth_loss=False, triplets_per_anchor="all").cuda()
-    #criterion = losses.SoftTripleLoss(num_classes=5, embedding_size=512, centers_per_class=10, la=20, gamma=0.1, margin=0.01).cuda()
+    #criterion = losses.SoftTripleLoss(num_classes=len(CLASS_NAMES), embedding_size=len(CLASS_NAMES)*20, centers_per_class=10, la=20, gamma=0.1, margin=0.01).cuda()
     #criterion = losses.CircleLoss(m=0.4, gamma=80).cuda()
-    #criterion = losses.ContrastiveLoss(pos_margin=0, neg_margin=1).cuda()
     criterion = CIndexTripletLoss().cuda() #ours
     print('********************load model succeed!********************')
 
@@ -113,8 +114,8 @@ def Test():
     print('********************load data succeed!********************')
 
     print('********************load model********************')
-    model = resnet50(pretrained=False, num_classes=len(CLASS_NAMES)*20).cuda()
-    #model = ViT(image_size = 224, patch_size = 32, num_classes = len(CLASS_NAMES)*20, dim = 1024, depth = 6,heads = 16, mlp_dim = 2048).cuda()
+    #model = resnet50(pretrained=False, num_classes=len(CLASS_NAMES)*20).cuda()
+    model = ViT(image_size = 224, patch_size = 32, num_classes = len(CLASS_NAMES)*20, dim = 1024, depth = 6,heads = 16, mlp_dim = 2048).cuda()
     criterion = CIndexTripletLoss().cuda() #ours
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
