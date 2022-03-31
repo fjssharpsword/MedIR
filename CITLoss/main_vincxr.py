@@ -39,7 +39,7 @@ from cindex_triplet_loss import CIndexTripletLoss
 os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
 CLASS_NAMES = ['No finding', 'Aortic enlargement', 'Atelectasis', 'Calcification','Cardiomegaly', 'Consolidation', 'ILD', 'Infiltration', \
                 'Lung Opacity', 'Nodule/Mass', 'Other lesion', 'Pleural effusion', 'Pleural thickening', 'Pneumothorax', 'Pulmonary fibrosis']
-CKPT_PATH = '/data/pycode/MedIR/CIndex/ckpts/vincxr_vit.pkl'
+CKPT_PATH = '/data/pycode/MedIR/CITLoss/ckpts/vincxr_vit.pkl'
 MAX_EPOCHS = 50
 BATCH_SIZE = 16*8
 #nohup python main_vincxr.py > logs/main_vincxr.log 2>&1 & 
