@@ -31,7 +31,7 @@ class CIndexTripletLoss(BaseMetricLossFunction):
         swap=False,
         smooth_loss=False,
         triplets_per_anchor="all",
-        tau = 0.5, 
+        gamma = 0.5, 
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -41,7 +41,7 @@ class CIndexTripletLoss(BaseMetricLossFunction):
         self.triplets_per_anchor = triplets_per_anchor
         self.add_to_recordable_attributes(list_of_names=["margin"], is_stat=False)
 
-        self.tau = tau #temperature parameter
+        self.gamma = gamma #scale factor
 
     def compute_loss(self, embeddings, labels, indices_tuple, ref_emb, ref_labels):
         indices_tuple = lmu.convert_to_triplets(indices_tuple, labels, ref_labels, t_per_anchor=self.triplets_per_anchor)
@@ -58,7 +58,7 @@ class CIndexTripletLoss(BaseMetricLossFunction):
         current_margins = self.distance.margin(ap_dists, an_dists)#d(a,p)-d(a,n) + m
         #violation = current_margins + self.margin
         #exponential lower bound
-        violation = torch.exp(current_margins/self.tau)
+        violation = torch.exp(current_margins/self.gamma)
         #violation = 1-torch.exp(-current_margins)
         if self.smooth_loss:
             loss = torch.nn.functional.softplus(violation)
