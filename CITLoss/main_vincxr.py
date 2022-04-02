@@ -42,7 +42,7 @@ CLASS_NAMES = ['No finding', 'Aortic enlargement', 'Atelectasis', 'Calcification
 CKPT_PATH = '/data/pycode/MedIR/CITLoss/ckpts/vincxr_vit.pkl'
 MAX_EPOCHS = 50
 BATCH_SIZE = 16*8
-#nohup python main_vincxr.py > logs/main_vincxr.log 2>&1 &   #PID: 50231
+#nohup python main_vincxr.py > logs/main_vincxr.log 2>&1 &   #PID: 15966
 def Train():
     print('********************load data********************')
     train_loader = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
