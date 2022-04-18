@@ -31,7 +31,7 @@ class CIndexTripletLoss(BaseMetricLossFunction):
         swap=False,
         smooth_loss=False,
         triplets_per_anchor="all",
-        gamma = 0.5, 
+        gamma = 1.0, 
         **kwargs
     ):
         super().__init__(**kwargs)
