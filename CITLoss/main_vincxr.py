@@ -25,6 +25,7 @@ import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import seaborn as sns
+from tensorboardX import SummaryWriter
 from sklearn.metrics import ndcg_score
 from sklearn.metrics import roc_auc_score, roc_curve, auc, f1_score, confusion_matrix, accuracy_score
 #self-defined
@@ -39,20 +40,22 @@ from cindex_triplet_loss import CIndexTripletLoss
 os.environ['CUDA_VISIBLE_DEVICES'] = "0,1,2,3,4,5,6,7"
 CLASS_NAMES = ['No finding', 'Aortic enlargement', 'Atelectasis', 'Calcification','Cardiomegaly', 'Consolidation', 'ILD', 'Infiltration', \
                 'Lung Opacity', 'Nodule/Mass', 'Other lesion', 'Pleural effusion', 'Pleural thickening', 'Pneumothorax', 'Pulmonary fibrosis']
-CKPT_PATH = '/data/pycode/MedIR/CITLoss/ckpts/vincxr_vit.pkl'
-MAX_EPOCHS = 50
+MAX_EPOCHS = 60
 BATCH_SIZE = 16*8
-#nohup python main_vincxr.py > logs/main_vincxr.log 2>&1 &   #PID: 15966
+CKPT_PATH = '/data/pycode/MedIR/CITLoss/ckpts/vincxr_cnn_gamma0.5.pkl'
+#nohup python main_vincxr.py > logs/vincxr_cnn_gamma0.5.log 2>&1 &   #PID: 14737
 def Train():
     print('********************load data********************')
     train_loader = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=True, num_workers=8)
+    test_loader = get_box_dataloader_VIN(batch_size=BATCH_SIZE, shuffle=False, num_workers=8)
     print ('==>>> total trainning batch number: {}'.format(len(train_loader)))
+    print ('==>>> total test batch number: {}'.format(len(test_loader)))
     print('********************load data succeed!********************')
 
     print('********************load model********************')
     # initialize and load the model
-    #model = resnet50(pretrained=False, num_classes=len(CLASS_NAMES)*20).cuda()
-    model = ViT(image_size = 224, patch_size = 32, num_classes = len(CLASS_NAMES)*20, dim = 1024, depth = 6,heads = 16, mlp_dim = 2048).cuda()
+    model = resnet50(pretrained=False, num_classes=len(CLASS_NAMES)*20).cuda()
+    #model = ViT(image_size = 224, patch_size = 32, num_classes = len(CLASS_NAMES)*20, dim = 1024, depth = 6,heads = 16, mlp_dim = 2048).cuda()
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
         model.load_state_dict(checkpoint) #strict=False
@@ -62,17 +65,18 @@ def Train():
     optimizer = optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.999), eps=1e-08, weight_decay=1e-5)
     lr_scheduler_model = lr_scheduler.StepLR(optimizer, step_size=10, gamma=1)
     #optional loss functions
-    #criterion = losses.AngularLoss(alpha=40).cuda()
     #criterion = losses.ContrastiveLoss(pos_margin=0, neg_margin=1).cuda()
+    #criterion = losses.AngularLoss(alpha=40).cuda()
     #criterion = losses.TripletMarginLoss(margin=0.05, swap=False, smooth_loss=False, triplets_per_anchor="all").cuda()
     #criterion = CentroidTripletLoss(margin=0.05, swap=False, smooth_loss=False, triplets_per_anchor="all").cuda()
     #criterion = losses.SoftTripleLoss(num_classes=len(CLASS_NAMES), embedding_size=len(CLASS_NAMES)*20, centers_per_class=10, la=20, gamma=0.1, margin=0.01).cuda()
     #criterion = losses.CircleLoss(m=0.4, gamma=80).cuda()
-    criterion = CIndexTripletLoss().cuda() #ours
+    criterion = CIndexTripletLoss(gamma = 0.5).cuda() #1.0-0.5-0.1
     print('********************load model succeed!********************')
 
     print('********************begin training!********************')
     loss_min = float('inf')
+    log_writer = SummaryWriter('/data/tmpexec/tensorboard-log') #--port 10002, start tensorboard
     for epoch in range(MAX_EPOCHS):
         since = time.time()
         print('Epoch {}/{}'.format(epoch+1 , MAX_EPOCHS))
@@ -94,6 +98,7 @@ def Train():
                 loss_train.append(loss_tensor.item())
                 sys.stdout.write('\r Epoch: {} / Step: {} : train loss = {}'.format(epoch+1, batch_idx+1, float('%0.6f'%loss_tensor.item()) ))
                 sys.stdout.flush()
+                break
         lr_scheduler_model.step()  #about lr and gamma
         print("\r Eopch: %5d train loss = %.6f" % (epoch + 1, np.mean(loss_train) ))
         
@@ -102,8 +107,45 @@ def Train():
             torch.save(model.module.state_dict(), CKPT_PATH) #Saving torch.nn.DataParallel Models
             print(' Epoch: {} model has been already save!'.format(epoch + 1))
 
+        #obtaining testset performance
+        ci_score = []
+        sp = []
+        sn = []
+        with torch.autograd.no_grad():
+            for batch_idx, (image, label) in enumerate(test_loader):
+                var_image = torch.autograd.Variable(image).cuda()
+                var_label = torch.autograd.Variable(label).cuda()
+                var_feat = model(var_image)
+                ci_score_batch = criterion.compute_CIScore(var_feat, var_label).item()
+                if ci_score_batch >= 0.0: ci_score.append(ci_score_batch) #C-index metric
+                if (epoch+1)==1 or (epoch+1)==2: #MAX_EPOCHS
+                    ap_dists, an_dists = criterion.compute_triplet_sim(var_feat, var_label)
+                    if len(ap_dists)>0 and len(an_dists)>0:
+                        sp.extend(ap_dists.cpu().numpy())
+                        sn.extend(an_dists.cpu().numpy())
+                sys.stdout.write('\r Epoch: {} / Step: {} : C-index = {}'.format(epoch+1, batch_idx+1, float('%0.6f'%ci_score_batch)))
+                sys.stdout.flush()
+                break
+        print("\r Eopch: %5d C-index value = %.6f" % (epoch + 1, np.mean(ci_score) ))
+
         time_elapsed = time.time() - since
         print('Training epoch: {} completed in {:.0f}m {:.0f}s'.format(epoch+1, time_elapsed // 60 , time_elapsed % 60))
+        log_writer.add_scalars('VINCXR_CNN_CIT/QCI', {'Gamma0.5':np.mean(loss_train)}, epoch+1)
+        log_writer.add_scalars('VINCXR_CNN_CIT/CI', {'Gamma0.5':np.mean(ci_score)}, epoch+1)
+        if (epoch+1)==1:
+            diff = sp-sn
+            #hard_triplet_idxs = np.where(diff>0) #return index
+            sp_s = sp[diff>0]
+            sn_s = sn[diff>0]
+        elif (epoch+1)==2: #MAX_EPOCHS
+            diff = sp-sn
+            sp_e = sp[diff>0]
+            sn_e = sn[diff>0]
+            fig = plt.scatter(sn_s, sp_s, s=20, marker='o', c='g')
+            fig = plt.scatter(sn_e, sp_e, s=20, marker='^', c='b')
+            plt.savefig('/data/pycode/MedIR/CITLoss/imgs/cit_gamma0.5.png', dpi=300, bbox_inches='tight')
+            #log_writer.add_figure('Similarity distribution gamma=1.0 epoch=%d'%(epoch+1), fig, global_step=None, close=False, walltime=None)
+    log_writer.close() #shut up the tensorboard
 
 def Test():
     print('********************load data********************')
@@ -114,8 +156,8 @@ def Test():
     print('********************load data succeed!********************')
 
     print('********************load model********************')
-    #model = resnet50(pretrained=False, num_classes=len(CLASS_NAMES)*20).cuda()
-    model = ViT(image_size = 224, patch_size = 32, num_classes = len(CLASS_NAMES)*20, dim = 1024, depth = 6,heads = 16, mlp_dim = 2048).cuda()
+    model = resnet50(pretrained=False, num_classes=len(CLASS_NAMES)*20).cuda()
+    #model = ViT(image_size = 224, patch_size = 32, num_classes = len(CLASS_NAMES)*20, dim = 1024, depth = 6,heads = 16, mlp_dim = 2048).cuda()
     criterion = CIndexTripletLoss().cuda() #ours
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
@@ -172,7 +214,7 @@ def Test():
                 else:
                     mAP.append(0)
             if len(mAP) > 0:
-                mAPs_avg.append(np.mean(mAP))
+                mAPs_avg.append(np.sum(mAP)/len(mAP))
             else:
                 mAPs_avg.append(0)
             mHRs_avg.append(num_pos/rank_pos)

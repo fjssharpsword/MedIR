@@ -90,6 +90,17 @@ class CIndexTripletLoss(BaseMetricLossFunction):
         ciscore = one_hot.sum()/len(one_hot)
         return ciscore
 
+    def compute_triplet_sim(self, embeddings, labels, indices_tuple=None, ref_emb=None, ref_labels=None):
+        indices_tuple = lmu.convert_to_triplets(indices_tuple, labels, ref_labels, t_per_anchor=self.triplets_per_anchor)
+        anchor_idx, positive_idx, negative_idx = indices_tuple
+        if len(anchor_idx) == 0:
+            return torch.tensor([]), torch.tensor([])
+        mat = self.distance(embeddings, ref_emb)
+        ap_dists = mat[anchor_idx, positive_idx]
+        an_dists = mat[anchor_idx, negative_idx]
+        
+        return ap_dists, an_dists
+
     def get_default_reducer(self):
         return AvgNonZeroReducer()
 
@@ -102,7 +113,9 @@ if __name__ == "__main__":
     #print(pdist(input2, input2))
     #print(torch.mul(input1,input1))
     #print(torch.mul(input1,input2))
-    input1 = torch.randn(128)
-    input2 = torch.randn(128)
-    print(input1.dot(input1))
-    print(input1.dot(input2))
+    #input1 = torch.randn(128)
+    #input2 = torch.randn(128)
+    #print(input1.dot(input1))
+    #print(input1.dot(input2))
+    x = torch.tensor([])
+    print(len(x))

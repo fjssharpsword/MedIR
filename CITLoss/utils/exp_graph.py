@@ -77,4 +77,5 @@ def main():
     plt.savefig('/data/pycode/MedIR/CITLoss/imgs/cit_exp.png', dpi=300, bbox_inches='tight')
 
 if __name__ == '__main__':
-    main()
+    #main()
+    print('Similarity distribution gamma=%d'%(9+1))
