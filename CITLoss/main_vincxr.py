@@ -132,6 +132,8 @@ def Train():
         print('Training epoch: {} completed in {:.0f}m {:.0f}s'.format(epoch+1, time_elapsed // 60 , time_elapsed % 60))
         log_writer.add_scalars('VINCXR_CNN_CIT/QCI', {'Gamma0.5':np.mean(loss_train)}, epoch+1)
         log_writer.add_scalars('VINCXR_CNN_CIT/CI', {'Gamma0.5':np.mean(ci_score)}, epoch+1)
+        sp = np.array(sp)
+        sn = np.array(sn)
         if (epoch+1)==1:
             diff = sp-sn
             #hard_triplet_idxs = np.where(diff>0) #return index
