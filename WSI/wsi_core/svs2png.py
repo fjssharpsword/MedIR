@@ -6,7 +6,17 @@ from os.path import isfile, join
 
 import openslide
 from PIL import Image
+import wsi_core.WholeSlideImage as WholeSlideImage
 
+
+def main():
+    #https://github.com/mahmoodlab/CLAM/blob/master/wsi_core/WholeSlideImage.py
+    full_path = "/data_local/ljjdata/TCGA/BRCA/fffb83a0-dab6-41be-9d8b-f4fb6c2584ab"
+    WSI_object = WholeSlideImage(full_path)
+    img = WSI_object.visWSI()
+    
+
+"""
 compression_factor = 3
 window_size = 10000
 Image.MAX_IMAGE_PIXELS = 1e10
@@ -47,7 +57,7 @@ def output_jpeg_tiles(image_name, output_path):  # converts svs image with meta 
             patch_rgb.save(output_image_name)
 
 def main():
-
+    
     input_folder = "/data_local/ljjdata/TCGA/BRCA/fffb83a0-dab6-41be-9d8b-f4fb6c2584ab"
     output_folder = "/data/pycode/MedIR/WSI/jpg"
     start_at = None #"fffb83a0-dab6-41be-9d8b-f4fb6c2584ab"
@@ -68,6 +78,7 @@ def main():
         full_image_path = input_folder + '/' + image_name
         output_path = output_folder + '/'
         output_jpeg_tiles(full_image_path, output_path)
+"""
 
 if __name__ == '__main__':
     main()
