@@ -62,9 +62,9 @@ def draw_roc_curve(y_true, y_scores, save_path=None):
 
 
 if __name__ == '__main__':
-    gt_path = '/data/code/deit/output/med2d/cxr_pretrainimgnet1k_1117/results_cvte_gt.csv'
-    score_path = '/data/code/deit/output/med2d/cxr_pretrainimgnet1k_1117/results_cvte_pred.csv'
-    save_path = "/data/code/deit/output/med2d/cxr_pretrainimgnet1k_1117/cvte.png"
+    gt_path = '/data/code/deit/output/med2d/cxr_pretrainimgnet1k_1117/results_xx_gt.csv'
+    score_path = '/data/code/deit/output/med2d/cxr_pretrainimgnet1k_1117/results_xx_pred.csv'
+    save_path = "/data/code/deit/output/med2d/cxr_pretrainimgnet1k_1117/xx.png"
     #gt
     gt_df = pd.read_csv(gt_path)
     # texture_lables = gt_df['Texture_label'].values
