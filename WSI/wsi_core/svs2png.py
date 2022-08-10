@@ -82,3 +82,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+    #project: /data/tmpexec/opencode/CLAM
+    #python3 create_patches_fp.py --source /data_local/ljjdata/TCGA/BRCA/fffb83a0-dab6-41be-9d8b-f4fb6c2584ab// --save_dir /data/pycode/MedIR/WSI/logs/ --patch_size 256 --seg --patch --stitch
