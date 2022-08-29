@@ -18,9 +18,9 @@ def main():
     axes.plot([0.6, 0.6], [0, np.exp(-0.6)], 'g--d')
     axes.plot([1.0, 1.0], [0, np.exp(-1.0)], 'g--d')
     axes.plot([1.4, 1.4], [0, np.exp(-1.4)], 'g-->')
-    axes.text(0.7, np.exp(-0.6), '$f_{\Theta}(t_{i}|x_{i}) > f_{\Theta}(t_{j}|x_{j})$')
-    axes.text(0.9, np.exp(-0.8), '$f_{\Theta}(t_{j}|x_{j}) > f_{\Theta}(t_{n}|x_{n})$')
-    axes.text(1.1, np.exp(-1.0), '$f_{\Theta}(t_{i}|x_{i}) > f_{\Theta}(t_{n}|x_{n})$')
+    axes.text(0.7, np.exp(-0.6), '$f_{\Theta}(t\leq t_{i}|x_{i}) > f_{\Theta}(t\leq t_{i}|x_{j})$')
+    axes.text(0.9, np.exp(-0.8), '$f_{\Theta}(t\leq t_{j}|x_{j}) > f_{\Theta}(t\leq t_{j}|x_{n})$')
+    axes.text(1.1, np.exp(-1.0), '$f_{\Theta}(t\leq t_{i}|x_{i}) > f_{\Theta}(t\leq t_{i}|x_{n})$')
     axes.text(0.4, np.exp(-0.2), 'Classification and ranking learning', color='r')
 
     axes.grid()
