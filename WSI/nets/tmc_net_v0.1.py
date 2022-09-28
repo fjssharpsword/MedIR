@@ -15,14 +15,13 @@ from torchvision.models import resnet50,densenet121,mobilenet_v2
 from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
 class LatentEncoding(nn.Module):
-    def __init__(self, dim_in: int, dim_cov: int = 64, dim_out: int = 256):
+    def __init__(self, dim_in: int, dim_cov: int = 256, dim_out: int = 256):
         super().__init__()
         """
         Args:
             dim_in: scalar, input dimension of each patch and each latent covariate
             dim_cov: scalar, number of latent covariates
-            dim_out: scalar, output of dimension of each patch and each latent covariate
-            tnm_stage: scalar, TNM stages, 1-10
+            dim_out: scaler, output of dimension of each patch and each latent covariate
         """
         #each latent covariate is represented by a dim_in-dimension vector.
         position = torch.arange(dim_cov).unsqueeze(1)
@@ -40,16 +39,16 @@ class LatentEncoding(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d((dim_cov,dim_out))
         self.latent_linear = nn.Linear(dim_in, dim_out)
 
-    def forward(self, x: torch.Tensor, tnm: int) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
             x: Tensor, shape [variable_seq_len, embedding_dim]
         """
-        x_in = torch.cat((x,tnm*self.lce), 0)#[variable_seq_len+dim_cov, embedding_dim]
+        x_in = torch.cat((x,self.lce), 0)#[variable_seq_len+dim_cov, embedding_dim]
         x_in = self.trans_enc(x_in.unsqueeze(0))
         x_max = self.maxpool(x_in.unsqueeze(0)) 
         x_avg = self.avgpool(x_in.unsqueeze(0))
-        x_cov = self.latent_linear(tnm*self.lce)
+        x_cov = self.latent_linear(self.lce)
         x_out = torch.cat((x_max.squeeze(0), x_avg.squeeze(0), x_cov.unsqueeze(0)), 0)
         return x_out
 
@@ -64,17 +63,17 @@ class TMCNet(nn.Module):
         #classifier
         self.classifier = densenet121(pretrained=False, num_classes=n_class)#3x256x256->FC
 
-    def forward(self, x, tnm):
+    def forward(self, x):
         x = self.encoder(x)
-        x = self.latent_encoder(x, tnm)
+        x = self.latent_encoder(x)
         x = self.classifier(x.unsqueeze(0)) #self.dense_net_121.features(x) 
         return F.softmax(x,dim=1)
 
 if __name__ == "__main__":
     #for debug  
     # a wsi=m*3*256*256, m is the number of patches
-    x = torch.rand(64, 3, 256, 256).cuda() 
+    x = torch.rand(56, 3, 256, 256).cuda() 
     model = TMCNet(n_var_vec=1024, n_class=32).cuda()
     #model = nn.DataParallel(model).cuda()
-    out = model(x, tnm=2) #tnm =[1,10]
+    out = model(x)
     print(out.size())
