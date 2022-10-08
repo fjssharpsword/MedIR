@@ -9,7 +9,6 @@ import scipy
 import openslide
 from PIL import Image
 
-
 def main():
     #load survival information
     root_path = '/data_local/ljjdata/TCGA/clinical/BRCA/'
@@ -34,7 +33,6 @@ def main():
     sur_data['tnm'] = tnm_list
     #print(sur_data['tnm'].value_counts())
     sur_data.to_csv('/data/pycode/MedIR/WSI/data/tcga_brca_clinical.csv', index=False, sep=',')
-
 
 if __name__ == '__main__':
     main()
