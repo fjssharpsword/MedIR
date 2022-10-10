@@ -29,7 +29,7 @@ from sklearn.metrics import ndcg_score
 from sklearn.metrics import roc_auc_score, roc_curve, auc, f1_score, confusion_matrix, accuracy_score
 #self-defined
 from nets.mre import MRE
-from datas.fundus_idrid_grading import get_train_dataset_fundus, get_test_dataset_fundus
+from dsts.idrid_grading import get_train_dataset_fundus, get_test_dataset_fundus
 
 
 #config

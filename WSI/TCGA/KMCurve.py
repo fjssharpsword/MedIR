@@ -36,7 +36,7 @@ def main():
     # Compute Survival
     results = km.fit(tnm_data['days'], tnm_data['vital_status'], tnm_data['tnm'])
     # Plot
-    km.plot(results,savepath='/data/pycode/MedIR/WSI/imgs/brca_km.png', cii_lines='dense',cii_alpha=0.1, title='Kaplan-Meier Curve', width=10, height=6 )
+    km.plot(results,savepath='/data/pycode/MedIR/WSI/imgs/brca_km.png', cii_lines='dense',cii_alpha=0.8, title='Kaplan-Meier Curve', width=10, height=6 )
 
 if __name__ == '__main__':
     main()
