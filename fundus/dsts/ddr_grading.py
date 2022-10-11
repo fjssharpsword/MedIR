@@ -5,6 +5,7 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 from PIL import Image, ImageFile
+from collections import Counter
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 """
@@ -19,22 +20,24 @@ class DatasetGenerator(Dataset):
             path_to_lbl_dir: path to label directory.
             transform: optional transform to be applied on a sample.
         """
-        self.CLASS_NAMES = ['No DR', "Mild NPDR", 'Moderate NPDR', 'Severe NPDR', 'PDR', 'Ungradable']
+        self.CLASS_NAMES = ['No DR', "Mild NPDR", 'Moderate NPDR', 'Severe NPDR', 'PDR']
         imgs_list = []
         lbls_list = []
         with open(path_to_lbl_dir, "r") as f:
             for line in f:
                 items = line.split(' ')
                 img_name =  os.path.join(path_to_img_dir, items[0])
-                if os.path.exists(img_name):
+                lbl_idx = int(items[1])
+                if os.path.exists(img_name) and lbl_idx != 5: #remove class ungradable
                     imgs_list.append(img_name)
+                    lbls_list.append(int(items[1]))
                     #lbl_onehot = np.zeros(len(self.CLASS_NAMES)) #one-hot
                     #lbl_onehot[int(items[1])] = 1
                     #lbls_list.append(lbl_onehot)
-                    lbls_list.append(int(items[1]))
-
+                    
         self.imgs_list = imgs_list
         self.lbls_list = lbls_list
+        #print(Counter(lbls_list))
         self.transform_seq = transforms.Compose([transforms.Resize((224,224)),transforms.ToTensor()])
 
     def __getitem__(self, index):
@@ -65,7 +68,7 @@ def get_fundus_DDR(batch_size, shuffle, num_workers, dst_type='train'):
 
 if __name__ == "__main__":
     #for debug   
-    ddr_dst = get_fundus_DDR(batch_size=10, shuffle=True, num_workers=0, dst_type='valid')
+    ddr_dst = get_fundus_DDR(batch_size=10, shuffle=True, num_workers=0, dst_type='train')
     for batch_idx, (img, lbl) in enumerate(ddr_dst):
         print(img.shape)
         print(lbl)

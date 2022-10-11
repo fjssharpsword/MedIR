@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw
 import PIL.ImageOps
 from sklearn.model_selection import train_test_split
-
+from collections import Counter
 """
 Dataset: Indian Diabetic Retinopathy Image Dataset (IDRiD)
 https://idrid.grand-challenge.org/
@@ -47,13 +47,14 @@ class DatasetGenerator(Dataset):
         for data in datas:
             image = path_to_img_dir + data[0]+'.jpg'
             image_list.append(image)
-            label = np.zeros(len(self.CLASS_NAMES)) #one-hot
-            label[int(data[1])] = 1
-            label_list.append(label)
-            #label_list.append(int(data[1]))
+            #label = np.zeros(len(self.CLASS_NAMES)) #one-hot
+            #label[int(data[1])] = 1
+            #label_list.append(label)
+            label_list.append(int(data[1]))
 
         self.image_list = image_list
         self.label_list = label_list
+        #print(Counter(label_list))
         self.transform_seq = transforms.Compose([transforms.Resize((224,224)),transforms.ToTensor()])
 
     def __getitem__(self, index):
@@ -66,8 +67,8 @@ class DatasetGenerator(Dataset):
         image = self.image_list[index] 
         image = self.transform_seq(Image.open(image).convert('RGB'))
         label = self.label_list[index]
-        label = torch.as_tensor(label, dtype=torch.float32)
-        #label = torch.as_tensor(label, dtype=torch.long)
+        #label = torch.as_tensor(label, dtype=torch.float32)
+        label = torch.as_tensor(label, dtype=torch.long)
   
         return image, label
 
@@ -89,7 +90,16 @@ def get_test_dataset_fundus(batch_size, shuffle, num_workers):
     data_loader_test = DataLoader(dataset=dataset_test, batch_size=batch_size,shuffle=shuffle, num_workers=num_workers, pin_memory=True)
     return data_loader_test
 
-def get_dataset_fundus():
+def get_fundus_idrid(batch_size, shuffle, num_workers):
     dataset_train = DatasetGenerator(path_to_img_dir=PATH_TO_IMAGES_DIR_TRAIN, path_to_lbl_dir=PATH_TO_LABELS_DIR_TRAIN)
     dataset_test = DatasetGenerator(path_to_img_dir=PATH_TO_IMAGES_DIR_TEST, path_to_lbl_dir=PATH_TO_LABELS_DIR_TEST)
-    return dataset_train+dataset_test
+    data_loader_idrid = DataLoader(dataset=dataset_train+dataset_test, batch_size=batch_size,shuffle=shuffle, num_workers=num_workers, pin_memory=True)
+    return data_loader_idrid
+
+if __name__ == "__main__":
+    #for debug   
+    idrid_dst = get_fundus_idrid(batch_size=10, shuffle=True, num_workers=0)
+    for batch_idx, (img, lbl) in enumerate(idrid_dst):
+        print(img.shape)
+        print(lbl)
+        break

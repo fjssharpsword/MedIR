@@ -5,9 +5,9 @@ Author: Jason.Fang
 Update time: 09/10/2022
 """
 import torch
-import torch.nn as nn
-from torch.nn.utils import spectral_norm
 from torchvision.models import resnet50
+from tensorboardX import SummaryWriter
+
 #approximated SVD
 #https://jeremykun.com/2016/05/16/singular-value-decomposition-part-2-theorem-proof-algorithm/
 def Power_iteration(W, eps=1e-10, Ip=1):
@@ -31,19 +31,20 @@ def Power_iteration(W, eps=1e-10, Ip=1):
     return u, s, v
 
 
-def UpdateGrad(model, coef=1e-3, p='sd'): #
+def UpdateGrad(model, coef=1.0, p='sn'): #
     #p=sd: spectral decay
     #p=l2: l2 weight decay
     for name, param in model.named_parameters():
         if 'conv' in name and param.grad is not None:
-            if p=='sd': 
+            if p=='sn': 
                 out_channels, in_channels, ks1, ks2 = param.data.shape
                 weight_mat = param.data.view(out_channels*ks1,in_channels*ks2)
                 u, s, v = Power_iteration(weight_mat)
-                spec_weight = s*torch.matmul(u, v.T)
-                Wgrad = spec_weight.view(param.data.shape)
+                weight_mat_rank_one = s*torch.matmul(u, v.T)
+                #Wgrad = (weight_mat-weight_mat_rank_one).view(param.data.shape)
+                Wgrad = weight_mat_rank_one.view(param.data.shape)
                 param.grad += coef * Wgrad
-            elif p=='l2':
+            elif p=='l2n':
                 param.grad += coef*param.data
             else:
                 pass
@@ -53,8 +54,27 @@ def UpdateGrad(model, coef=1e-3, p='sd'): #
 
 if __name__ == '__main__':
     x = torch.rand(2, 3, 224 ,224).cuda()
+    log_writer = SummaryWriter('/data/tmpexec/tb_log')
+
     model = resnet50(pretrained=True, num_classes=1000).cuda()
+    model.train()
     out = model(x)
-    print(out.shape)
+
+    for name, param in model.named_parameters():
+        if "conv" in name:
+            log_writer.add_histogram(name + '_data', param.clone().cpu().data.numpy(), 1)
+            if param.grad is not None: #leaf node in the graph retain gradient
+                log_writer.add_histogram(name + '_grad', param.grad, 1)
+
+    
+    UpdateGrad(model, coef=1e-3, p='sd')
+
+    for name, param in model.named_parameters():
+        if "conv" in name:
+            log_writer.add_histogram(name + '_data', param.clone().cpu().data.numpy(), 2)
+            if param.grad is not None: #leaf node in the graph retain gradient
+                log_writer.add_histogram(name + '_grad', param.grad, 2)
+
+    log_writer.close() #shut up the tensorboard
 
  
