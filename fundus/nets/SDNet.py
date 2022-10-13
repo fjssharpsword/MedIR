@@ -5,16 +5,16 @@ from collections import OrderedDict
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 import torchvision.models as torchvision_models
-from torchvision.models import resnet50,densenet121,mobilenet_v2
+from torchvision.models import resnet50,densenet121,mobilenet_v2,inception_v3
 
 #Masked Region Encoder for Medical Image Retrieval
 class SDNet(nn.Module):
     def __init__(self, num_vectors=1000):
         super(SDNet, self).__init__()
-
-        self.encoder = resnet50(pretrained=True, num_classes=num_vectors) #b*3*224*224->b*num_vectors
-        #self.encoder = densenet121(pretrained=True, num_classes=num_vectors)
-        #self.encoder = mobilenet_v2(pretrained=True, num_classes=num_vectors)
+        #b*3*224*224->b*num_vectors
+        self.encoder = resnet50(pretrained=True, num_classes=num_vectors)  #batch size=200
+        #self.encoder = densenet121(pretrained=True, num_classes=num_vectors) #batch size=128
+        #self.encoder = mobilenet_v2(pretrained=True, num_classes=num_vectors) #batch size=256
         self.bn = nn.BatchNorm1d(num_vectors) #b*num_vectors->b*num_vectors
         
     def forward(self, x):

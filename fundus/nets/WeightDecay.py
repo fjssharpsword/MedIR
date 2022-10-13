@@ -5,7 +5,7 @@ Author: Jason.Fang
 Update time: 09/10/2022
 """
 import torch
-from torchvision.models import resnet50
+from torchvision.models import resnet50,mobilenet_v2,inception_v3
 from tensorboardX import SummaryWriter
 
 #approximated SVD
@@ -32,19 +32,19 @@ def Power_iteration(W, eps=1e-10, Ip=1):
 
 
 def UpdateGrad(model, coef=1.0, p='sn'): #
-    #p=sd: spectral decay
-    #p=l2: l2 weight decay
     for name, param in model.named_parameters():
         if 'conv' in name and param.grad is not None:
-            if p=='sn': 
-                out_channels, in_channels, ks1, ks2 = param.data.shape
-                weight_mat = param.data.view(out_channels*ks1,in_channels*ks2)
-                u, s, v = Power_iteration(weight_mat)
-                weight_mat_rank_one = s*torch.matmul(u, v.T)
-                #Wgrad = (weight_mat-weight_mat_rank_one).view(param.data.shape)
-                Wgrad = weight_mat_rank_one.view(param.data.shape)
-                param.grad += coef * Wgrad
-            elif p=='l2n':
+            if p=='sn':#spectral norm-based weight decay
+                if len(param.data.shape)==4: 
+                    out_channels, in_channels, ks1, ks2 = param.data.shape
+                    weight_mat = param.data.view(out_channels*ks1,in_channels*ks2)
+                    #weight_mat = param.data.view(param.data.shape[0],-1) 
+                    u, s, v = Power_iteration(weight_mat)
+                    weight_mat_rank_one = s*torch.matmul(u, v.T)
+                    #Wgrad = (weight_mat-weight_mat_rank_one).view(param.data.shape)
+                    Wgrad = weight_mat_rank_one.view(param.data.shape)
+                    param.grad += coef * Wgrad
+            elif p=='ln':#L2 norm-based weight decay
                 param.grad += coef*param.data
             else:
                 pass
@@ -53,6 +53,12 @@ def UpdateGrad(model, coef=1.0, p='sn'): #
             
 
 if __name__ == '__main__':
+
+    model = inception_v3(pretrained=True, num_classes=1000).cuda()
+    for name, param in model.named_parameters():
+        if 'conv' in name:
+            print(name +':'+ str(param.data.shape))
+    """
     x = torch.rand(2, 3, 224 ,224).cuda()
     log_writer = SummaryWriter('/data/tmpexec/tb_log')
 
@@ -76,5 +82,6 @@ if __name__ == '__main__':
                 log_writer.add_histogram(name + '_grad', param.grad, 2)
 
     log_writer.close() #shut up the tensorboard
+    """
 
  

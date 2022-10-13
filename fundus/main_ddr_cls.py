@@ -28,13 +28,13 @@ from nets.WeightDecay import UpdateGrad
 #config
 os.environ['CUDA_VISIBLE_DEVICES'] = "5,6"
 CLASS_NAMES = ['No DR', "Mild NPDR", 'Moderate NPDR', 'Severe NPDR', 'PDR']
-CKPT_PATH = '/data/pycode/MedIR/fundus/ckpts/ddr_resnet_sn_triplet.pkl'
+CKPT_PATH = '/data/pycode/MedIR/fundus/ckpts/ddr_resnet_sn_cit.pkl'
 MAX_EPOCHS = 30
 
 def Train():
     print('********************load data********************')
-    dataloader_train = get_fundus_DDR(batch_size=200, shuffle=True, num_workers=8, dst_type='train')
-    dataloader_valid = get_fundus_DDR(batch_size=200, shuffle=False, num_workers=8, dst_type='valid')
+    dataloader_train = get_fundus_DDR(batch_size=128, shuffle=True, num_workers=8, dst_type='train')
+    dataloader_valid = get_fundus_DDR(batch_size=128, shuffle=False, num_workers=8, dst_type='valid')
     print('********************load data succeed!********************')
 
     print('********************load model********************')
@@ -49,9 +49,9 @@ def Train():
     optimizer = optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.0) #default:0.0, L2 = 1e-3
     lr_scheduler_model = lr_scheduler.StepLR(optimizer, step_size=10, gamma=1)
     kmeans = KMeans(n_clusters=len(CLASS_NAMES), random_state=0)
-    criterion = losses.TripletMarginLoss(margin=0.05, swap=False, smooth_loss=False, triplets_per_anchor="all").cuda()
+    #criterion = losses.TripletMarginLoss(margin=0.05, swap=False, smooth_loss=False, triplets_per_anchor="all").cuda()
     #criterion = losses.CircleLoss(m=0.4, gamma=80).cuda()
-    #criterion = CITLoss(gamma = 0.5).cuda()#1.0-0.5-0.1
+    criterion = CITLoss(gamma = 0.5).cuda()#1.0-0.5-0.1
     print('********************load model succeed!********************')
 
     print('********************begin training!********************')
@@ -76,6 +76,7 @@ def Train():
                 loss_bn.backward()
                 #sn-spectral norm-coef=1.0, l2n-l2norm-coef=0.1/0.01
                 UpdateGrad(model, coef=1.0, p='sn') 
+                #UpdateGrad(model, coef=0.1, p='ln') 
                 optimizer.step()
                 #show 
                 loss_train.append(loss_bn.item())
@@ -128,10 +129,10 @@ def Train():
 
 def Query():
     print('\r ********************load data********************')
-    dataloader_train = get_fundus_DDR(batch_size=100, shuffle=False, num_workers=6, dst_type='train')
-    dataloader_valid = get_fundus_DDR(batch_size=100, shuffle=False, num_workers=6, dst_type='valid')
-    dataloader_test = get_fundus_DDR(batch_size=100, shuffle=False, num_workers=6, dst_type='test')
-    dataloader_idrid = get_fundus_idrid(batch_size=100, shuffle=False, num_workers=6)
+    dataloader_train = get_fundus_DDR(batch_size=64, shuffle=False, num_workers=4, dst_type='train')
+    dataloader_valid = get_fundus_DDR(batch_size=64, shuffle=False, num_workers=4, dst_type='valid')
+    dataloader_test = get_fundus_DDR(batch_size=64, shuffle=False, num_workers=4, dst_type='test')
+    dataloader_idrid = get_fundus_idrid(batch_size=64, shuffle=False, num_workers=4)
     print('\r ********************load data succeed!********************')
 
     print('\r ********************load model********************')
