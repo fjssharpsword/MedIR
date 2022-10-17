@@ -73,7 +73,7 @@ class DatasetGenerator(Dataset):
         self.transform_seq_mask = transforms.Compose([
             transforms.Resize((224,224)),
             ])
-        #self.show_lesion()
+        
 
     def label_lesion(self, maskIDs, OD_IDs):
         lableIDs = [] #diameter of min lesion, numbers of lesion, distribution of lesions
@@ -82,8 +82,8 @@ class DatasetGenerator(Dataset):
             mask_od = OD_IDs[index]
             #get centroids of OD
             cv_od = cv2.imread(mask_od, cv2.IMREAD_GRAYSCALE)
-            lbl_ma = skilabel(cv_od, 2) #connectivity=Eight connected
-            props = regionprops(lbl_ma)
+            lbl_od = skilabel(cv_od, 2) #connectivity=Eight connected
+            props = regionprops(lbl_od)
             cen_od = props[1].centroid #tuple (row, col)
             #handle Lesion
             cv_lesion = cv2.imread(mask_lesion, cv2.IMREAD_GRAYSCALE) #binary image, cv2.COLOR_BGR2GRAY
@@ -111,44 +111,7 @@ class DatasetGenerator(Dataset):
                 if num_quadrant[i]>0: num_dis+=1
             lableIDs.append([min_diameter, len(props)-1, num_dis])
         return lableIDs
-    
-    def transparent_back(self, img, cls='he'):
-        #img = img.convert('RGBA')
-        L, H = img.size
-        color_0 = img.getpixel((0,0)) #alpha channel: 0~255
-        for h in range(H):
-            for l in range(L):
-                dot = (l,h)
-                color_1 = img.getpixel(dot)
-                if color_1 == color_0:
-                    color_1 = color_1[:-1] + (0,)
-                    img.putpixel(dot,color_1)
-                else: 
-                    if cls=='ma':
-                        color_1 = ( 0, 0, 255, 255) #turn to blue  and transparency 
-                        img.putpixel(dot,color_1)
-                    else: #'he'
-                        color_1 = ( 0 , 255, 0, 255) #turn to green  and transparency 
-                        img.putpixel(dot,color_1)
-        return img
 
-    def show_lesion(self):
-        #plot 
-        for index in range(len(self.imageIDs)):
-            mask_ma = self.maskIDs_MA[index]
-            mask_he = self.maskIDs_HE[index]
-            #show 
-            image = Image.open(image).convert('RGBA')
-            mask_ma = Image.open(mask_ma).convert('RGBA')
-            mask_ma = self.transparent_back(mask_ma, 'ma')
-            overlay = Image.alpha_composite(image, mask_ma)
-            mask_he = Image.open(mask_he).convert('RGBA')
-            mask_he = self.transparent_back(mask_he, 'he')
-            overlay = Image.alpha_composite(overlay, mask_he)
-            plt.imshow(overlay)#cmap='gray'
-            plt.axis('off')
-            plt.savefig('/data/pycode/MedIR/fundus/imgs/IDRiD_18_overlay.jpg')
-    
     def __getitem__(self, index):
         """
         Args:
