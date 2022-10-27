@@ -192,11 +192,11 @@ def Query(lesion='MA'):
     print("\r Dice coefficient = %.2f" % (100- np.mean(dice_coe)*100))
     
 def main():
-    Train(lesion='MA')#MA training
-    Query(lesion='MA')
+    #Train(lesion='MA')#MA training
+    #Query(lesion='MA')
 
-    #Train(lesion='HE')#HE training
-    #Query(lesion='HE')
+    Train(lesion='HE')#HE training
+    Query(lesion='HE')
 
 if __name__ == '__main__':
     main()

@@ -28,8 +28,8 @@ from nets.WeightDecay import UpdateGrad
 #config
 os.environ['CUDA_VISIBLE_DEVICES'] = "5,6"
 CLASS_NAMES = ['No DR', "Mild NPDR", 'Moderate NPDR', 'Severe NPDR', 'PDR']
-CKPT_PATH = '/data/pycode/MedIR/fundus/ckpts/ddr_resnet_sn_cit.pkl'
-MAX_EPOCHS = 30
+CKPT_PATH = '/data/pycode/MedIR/fundus/ckpts/ddr_resnet_mt_sn.pkl'
+MAX_EPOCHS = 50
 
 def Train():
     print('********************load data********************')
@@ -49,9 +49,9 @@ def Train():
     optimizer = optim.Adam(model.parameters(), lr=1e-3, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.0) #default:0.0, L2 = 1e-3
     lr_scheduler_model = lr_scheduler.StepLR(optimizer, step_size=10, gamma=1)
     kmeans = KMeans(n_clusters=len(CLASS_NAMES), random_state=0)
-    #criterion = losses.TripletMarginLoss(margin=0.05, swap=False, smooth_loss=False, triplets_per_anchor="all").cuda()
+    criterion = losses.TripletMarginLoss(margin=0.05, swap=False, smooth_loss=False, triplets_per_anchor="all").cuda()
     #criterion = losses.CircleLoss(m=0.4, gamma=80).cuda()
-    criterion = CITLoss(gamma = 0.5).cuda()#1.0-0.5-0.1
+    #criterion = CITLoss(gamma = 0.5).cuda()#1.0-0.5-0.1
     print('********************load model succeed!********************')
 
     print('********************begin training!********************')
@@ -123,7 +123,7 @@ def Train():
 
         time_elapsed = time.time() - since
         print('Training epoch: {} completed in {:.0f}m {:.0f}s'.format(epoch+1, time_elapsed // 60 , time_elapsed % 60))
-        log_writer.add_scalars('DDR_Resnet/SN_Triplet', {'Train':np.mean(loss_train), 'Test':np.mean(loss_val), 'FMI':FMI}, epoch+1)
+        log_writer.add_scalars('DDR_Resnet/mt_sn', {'Train':np.mean(loss_train), 'Test':np.mean(loss_val), 'FMI':FMI}, epoch+1)
 
     log_writer.close() #shut up the tensorboard
 

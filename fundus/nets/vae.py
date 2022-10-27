@@ -181,8 +181,8 @@ class BetaVAE(nn.Module):
         for h_dim in hidden_dims:
             modules.append(
                 nn.Sequential(
-                    #nn.Conv2d(in_channels, out_channels=h_dim, kernel_size= 3, stride= 2, padding  = 1),# Vanilla convolution
-                    Conv2d_cd(in_channels, out_channels=h_dim, kernel_size= 3, stride= 2, padding  = 1), #central difference convolution
+                    nn.Conv2d(in_channels, out_channels=h_dim, kernel_size= 3, stride= 2, padding  = 1),# Vanilla convolution
+                    #Conv2d_cd(in_channels, out_channels=h_dim, kernel_size= 3, stride= 2, padding  = 1), #central difference convolution
                     #Conv2d_ad(in_channels, out_channels=h_dim, kernel_size= 3, stride= 2, padding  = 1), #average difference convolution
                     #Conv2d_Gaussian(in_channels, out_channels=h_dim, kernel_size= 3, stride= 2, padding  = 1),
                     nn.BatchNorm2d(h_dim),

@@ -98,6 +98,7 @@ def get_fundus_idrid(batch_size, shuffle, num_workers):
 
 if __name__ == "__main__":
     #for debug   
+    os.environ['CUDA_VISIBLE_DEVICES'] = "6"
     idrid_dst = get_fundus_idrid(batch_size=10, shuffle=True, num_workers=0)
     for batch_idx, (img, lbl) in enumerate(idrid_dst):
         print(img.shape)

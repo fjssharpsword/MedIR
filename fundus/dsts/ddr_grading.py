@@ -68,7 +68,7 @@ def get_fundus_DDR(batch_size, shuffle, num_workers, dst_type='train'):
 
 if __name__ == "__main__":
     #for debug   
-    ddr_dst = get_fundus_DDR(batch_size=10, shuffle=True, num_workers=0, dst_type='train')
+    ddr_dst = get_fundus_DDR(batch_size=10, shuffle=True, num_workers=0, dst_type='test')
     for batch_idx, (img, lbl) in enumerate(ddr_dst):
         print(img.shape)
         print(lbl)
