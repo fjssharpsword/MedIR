@@ -35,7 +35,7 @@ def Train(lesion='MA'):
     print('********************load data succeed!********************')
    
     print('********************load unet model********************')
-    unet_model = UNet(n_channels=3, n_classes=1, latent_dim=512).cuda()
+    unet_model = UNet(n_channels=1, n_classes=1, latent_dim=512).cuda()
     if os.path.exists(UNet_CKPT_PATH):
         checkpoint = torch.load(UNet_CKPT_PATH)
         unet_model.load_state_dict(checkpoint) #strict=False
@@ -45,7 +45,7 @@ def Train(lesion='MA'):
     kl_criterion = KL_Loss()
 
     print('********************load VAE model********************')
-    vae_model = BetaVAE(3, 512, loss_type='H', model_type='VAE').cuda() # initialize and load the model
+    vae_model = BetaVAE(1, 512, loss_type='H', model_type='VAE').cuda() # initialize and load the model
     if os.path.exists(VAE_CKPT_PATH):
         checkpoint = torch.load(VAE_CKPT_PATH)
         vae_model.load_state_dict(checkpoint) #strict=False
@@ -117,14 +117,14 @@ def Query(lesion='MA'):
     print('\r ********************load data succeed!********************')
 
     print('\r ********************load model********************')
-    vae_model = BetaVAE(3, 512, loss_type='H', model_type='VAE').cuda()
+    vae_model = BetaVAE(1, 512, loss_type='H', model_type='VAE').cuda()
     if os.path.exists(VAE_CKPT_PATH):
         checkpoint = torch.load(VAE_CKPT_PATH)
         vae_model.load_state_dict(checkpoint) #strict=False
         print("=> Loaded well-trained checkpoint from: "+VAE_CKPT_PATH)
     vae_model.eval()#turn to test mode
 
-    unet_model = UNet(n_channels=3, n_classes=1, latent_dim=512).cuda()
+    unet_model = UNet(n_channels=1, n_classes=1, latent_dim=512).cuda()
     if os.path.exists(UNet_CKPT_PATH):
         checkpoint = torch.load(UNet_CKPT_PATH)
         unet_model.load_state_dict(checkpoint) #strict=False
@@ -192,11 +192,11 @@ def Query(lesion='MA'):
     print("\r Dice coefficient = %.2f" % (100- np.mean(dice_coe)*100))
     
 def main():
-    #Train(lesion='MA')#MA training
-    #Query(lesion='MA')
+    Train(lesion='MA')#MA training
+    Query(lesion='MA')
 
-    Train(lesion='HE')#HE training
-    Query(lesion='HE')
+    #Train(lesion='HE')#HE training
+    #Query(lesion='HE')
 
 if __name__ == '__main__':
     main()

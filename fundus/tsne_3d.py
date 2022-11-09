@@ -18,6 +18,7 @@ from nets.SDNet import SDNet
 from dsts.idrid_grading import get_fundus_idrid
 from sklearn.manifold import TSNE
 from mpl_toolkits.mplot3d import Axes3D
+from nets.SpectralVariance import SpectralVariance
 
 os.environ['CUDA_VISIBLE_DEVICES'] = "5,6"
 def tsne_3d():
@@ -64,6 +65,9 @@ def tsne_3d():
     axes.scatter(tsne_cct_sn[:,0], tsne_cct_sn[:, 1], c=te_lbl.cpu().numpy(), s=2, alpha=0.5)
     #output    
     fig.savefig('/data/pycode/MedIR/fundus/imgs/tsne_2d.png', dpi=300, bbox_inches='tight')
+
+    #sv = SpectralVariance(embed_dim=512, mode=1).cuda()
+    #print(sv(te_vec_cct_sn))
 
 def main():
     tsne_3d()

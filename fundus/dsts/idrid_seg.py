@@ -123,7 +123,7 @@ class DatasetGenerator(Dataset):
         mask= self.maskIDs[index]
         label = self.lableIDs[index] 
 
-        image = self.transform_seq_image(Image.open(image).convert('RGB'))
+        image = self.transform_seq_image(Image.open(image).convert('L'))#.convert('RGB')
         mask = torch.FloatTensor(np.array(self.transform_seq_mask(Image.open(mask))))
         label = torch.as_tensor(label, dtype=torch.float32)
   

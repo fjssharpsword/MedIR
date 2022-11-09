@@ -4,6 +4,7 @@
 Author: Jason.Fang
 Update time: 17/10/2022
 """
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -182,8 +183,9 @@ def Dice_Loss(mask, target):
 
 if __name__ == "__main__":
     #for debug   
-    img = torch.rand(10, 3, 224, 224).cuda()#.to(torch.device('cuda:%d'%4))
-    unet = UNet(n_channels=3, n_classes=1, latent_dim=512).cuda()
+    os.environ['CUDA_VISIBLE_DEVICES'] = "6"
+    img = torch.rand(10, 1, 224, 224).cuda()#.to(torch.device('cuda:%d'%4))
+    unet = UNet(n_channels=1, n_classes=1, latent_dim=512).cuda()
     logits, mu, var, z= unet(img)
     print(logits.size())
     print(mu.size())

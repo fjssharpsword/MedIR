@@ -20,12 +20,12 @@ from tensorboardX import SummaryWriter
 #self-defined
 from dsts.idrid_seg import get_train_dataloader, get_test_dataloader
 from nets.vae import BetaVAE
-from nets.unet_2d import UNet, DiceLoss
+from nets.unet_2d import UNet
 
 #config
 os.environ['CUDA_VISIBLE_DEVICES'] = "5,6"
 CKPT_PATH = '/data/pycode/MedIR/fundus/ckpts/idrid_vae.pkl'
-MAX_EPOCHS = 100
+MAX_EPOCHS = 200
 
 def Train(lesion='MA'):
     print('********************load data********************')
@@ -35,7 +35,7 @@ def Train(lesion='MA'):
     
     print('********************load VAE model********************')
     # initialize and load the model
-    model = BetaVAE(3, 512, loss_type='H', model_type='VAE').cuda()
+    model = BetaVAE(1, 512, loss_type='H', model_type='VAE').cuda()
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
         model.load_state_dict(checkpoint) #strict=False
@@ -93,7 +93,7 @@ def Query(lesion='MA'):
     print('\r ********************load data succeed!********************')
 
     print('\r ********************load model********************')
-    model = BetaVAE(3, 512, loss_type='H', model_type='VAE').cuda()
+    model = BetaVAE(1, 512, loss_type='H', model_type='VAE').cuda()
     if os.path.exists(CKPT_PATH):
         checkpoint = torch.load(CKPT_PATH)
         model.load_state_dict(checkpoint) #strict=False
