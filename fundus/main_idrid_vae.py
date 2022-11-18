@@ -24,7 +24,7 @@ from nets.unet_2d import UNet
 
 #config
 os.environ['CUDA_VISIBLE_DEVICES'] = "5,6"
-CKPT_PATH = '/data/pycode/MedIR/fundus/ckpts/idrid_vae.pkl'
+CKPT_PATH = '/data/pycode/MedIR/fundus/ckpts/idrid_vae_grad.pkl'
 MAX_EPOCHS = 200
 
 def Train(lesion='MA'):
