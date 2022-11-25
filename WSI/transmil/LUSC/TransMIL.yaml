@@ -1,0 +1,57 @@
+# Version: 'v1.0'
+# Date: '20220904'
+
+General:
+    comment: 
+    seed: 2022
+    fp16: True
+    amp_level: O2
+    precision: 16 
+    multi_gpu_mode: dp
+    gpus: '6'    #[5]
+    epochs: &epoch 50
+    grad_acc: 2
+    frozen_bn: False
+    patience: 10
+    server: train #train #test
+    output_path: output_202211/
+    loss_name: CELoss
+
+Data:
+    dataset_name: lusc_data # brca_data lusc_data gbm_data
+    data_shuffle: True
+    # data_dir: '/data_local2/ljjdata/TCGA/TransMIL/BRCA/feat_vector/pt_file/'
+    # fold_dir: '/data/project/TCGA/code/SUSTC/TransMIL/LUSC_SP_project_final/dataset_csv/brca'
+    # survival_info: '/data_local3/ljjdata/TCGA/clinical/BRCA/tcga_brca_all_clean.csv'
+
+    fold: 0
+    nfold: 4
+    # feat_num: 500  # brca 400 lusc 500 gbm 250
+
+    train_dataloader:
+        batch_size: 16
+        num_workers: 8
+
+    test_dataloader:
+        batch_size: 1
+        num_workers: 8
+
+Model:
+    name: TransMIL
+    n_classes: 4 # 划分区间
+
+
+Optimizer:
+    opt: lookahead_radam
+    # opt: sgd
+    lr: 0.001
+    opt_eps: null 
+    opt_betas: null
+    momentum: null 
+    # momentum: 0.9
+    weight_decay: 0.0002
+    # weight_decay: 0.2
+
+# Loss:
+#     base_loss: CE+Loss
+
