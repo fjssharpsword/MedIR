@@ -28,7 +28,7 @@ from nets.WeightDecay import UpdateGrad
 #config
 os.environ['CUDA_VISIBLE_DEVICES'] = "5,6"
 CLASS_NAMES = ['No DR', "Mild NPDR", 'Moderate NPDR', 'Severe NPDR', 'PDR']
-CKPT_PATH = '/data/pycode/MedIR/fundus/ckpts/ddr_resnet_mt_sn.pkl'
+CKPT_PATH = '/data/pycode/MedIR/fundus/ckpts/ddr_resnet.pkl'
 MAX_EPOCHS = 50
 
 def Train():
