@@ -51,3 +51,5 @@ if __name__ == '__main__':
     sv = SpectralVariance(embed_dim=512, mode=1).cuda()
     out = sv(x)
     print(out)
+
+    

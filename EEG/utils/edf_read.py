@@ -6,6 +6,18 @@ import matplotlib.pyplot as plt
 #https://www.kaggle.com/competitions/seizure-prediction/data
 def main():
 
+    edf_file = '/data/fjsdata/EEG/CHB-MIT/files/chb01/chb01_01.edf'
+    edf_data = mne.io.read_raw_edf(edf_file)
+
+    print (edf_data.ch_names)
+    raw_data = edf_data.get_data()
+    print (raw_data.shape)
+    
+    edf_data.plot()
+    plt.savefig('/data/pycode/MedIR/EEG/imgs/eeg_mat.png', bbox_inches='tight')
+  
+
+    """
     dataFile = '/data/pycode/MedIR/EEG/data/Dog_2_interictal_segment_0001.mat'
     data = scio.loadmat(dataFile)
 
@@ -25,6 +37,7 @@ def main():
     plt.savefig('/data/pycode/MedIR/EEG/imgs/eeg_mat.png', bbox_inches='tight')
     print('shape：', raw.get_data().shape)
     print('channel：', raw.info.get('nchan'))
+    """
 
 
 if __name__ == "__main__":

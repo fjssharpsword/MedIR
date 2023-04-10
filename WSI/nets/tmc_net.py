@@ -78,3 +78,4 @@ if __name__ == "__main__":
     #model = nn.DataParallel(model).cuda()
     out = model(x, tnm=2) #tnm =[1,10]
     print(out.size())
+    

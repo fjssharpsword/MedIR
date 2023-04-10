@@ -15,12 +15,13 @@ def plt_var_std():
     axes[0,0].set_yticks(np.arange(69.0, 74.0, 1))
     error_params=dict(elinewidth=4, ecolor='coral',capsize=5)
     axes[0,0].bar(x,y,color=['b','g','y','c','m'], yerr=std_err, error_kw=error_params)
+    #for a, b in zip(x,y):
+    #    axes[0,0].text(a, b+0.05, '%.2f'%b, ha='center', va='bottom', fontsize=10)
     axes[0,0].set_ylabel('LUSC')
-    axes[0,0].set_title('DeepAttnMISL')
+    axes[0,0].set_title('DAMISL')
     axes[0,0].set_xticks([])
     axes[0,0].grid(True, axis='y',ls=':',color='gray',alpha=0.3)
     
-
     #LUSC-BDOCOX
     y=[70.18,69.28,73.29,72.55,72.01]
     std_err=[5.89,7.81,2.91,5.92,4.24]
