@@ -1,40 +1,49 @@
 import os
 import numpy as np
+import math
 from patient import Patient
 from sklearn.model_selection import KFold
 import torch
 from torchvision import transforms
 import torch.nn as nn
 import torchvision
+import random
 import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.utils.data import TensorDataset, DataLoader, SubsetRandomSampler
+from sklearn.model_selection import train_test_split
 from ConvNet import EEGConvNet
+from sklearn.metrics import confusion_matrix
 from tensorboardX import SummaryWriter
 
 # Generates splits within a patient (defaults seconds =20s)
 def intra_patient_split(patient_id, seconds = 20):
 
     p = Patient(patient_id)
-
     data = p.get_eeg_data()
     #labels = p.get_seizure_labels()
     win_len = int(p.get_sampling_rate() * seconds)
 
     #positive samples
-    sei_data, sei_idx = [], []
+    sei_data= []
     for sei_seg in p._seizure_intervals:
         num = int((sei_seg[1]-sei_seg[0])/win_len)
+        pos = sei_seg[0]
         for i in range(num):
             pos = sei_seg[0]+i*win_len
             sei_data.append(data[pos:pos+win_len])
-            sei_idx.append(1)
         if (sei_seg[1]-pos)>win_len/2:
             sei_data.append(data[pos:pos+win_len])
-            sei_idx.append(1)
+    random.shuffle(sei_data)
+    n_sei_te = max(1, int(math.ceil(0.2 * len(sei_data))))
+    n_sei_tr = len(sei_data) - n_sei_te
+    X_sei_tr = sei_data[:n_sei_tr]
+    y_sei_tr = np.ones(n_sei_tr)
+    X_sei_te = sei_data[n_sei_tr:]
+    y_sei_te = np.ones(n_sei_te)
 
     #negative samples
-    non_sei_data, non_sei_idx = [], []
+    non_sei_data = []
     for i in range(len(p._seizure_intervals)-1):
         if len(non_sei_data) >= len(sei_data)*10: #pos:neg=1:10 
             break
@@ -42,21 +51,31 @@ def intra_patient_split(patient_id, seconds = 20):
         for j in range(num):
             pos = p._seizure_intervals[i][1]+j*win_len
             non_sei_data.append(data[pos:pos+win_len])
-            non_sei_idx.append(0)
             if len(non_sei_data) >= len(sei_data)*10: #pos:neg=1:10 
                 break
+    random.shuffle(non_sei_data)
+    n_non_sei_te = max(1, int(round(0.2 * len(non_sei_data))))
+    n_non_sei_tr = len(non_sei_data) - n_non_sei_te
+    X_non_sei_tr = non_sei_data[:n_non_sei_tr]
+    y_non_sei_tr = np.zeros(n_non_sei_tr)
+    X_non_sei_te = non_sei_data[n_non_sei_tr:]
+    y_non_sei_te = np.zeros(n_non_sei_te)
 
-    #10-fold cross validataion
-    X = np.array(sei_data + non_sei_data)
-    y = np.array(sei_idx + non_sei_idx)
+    #split trainset and testset
+    X_tr, y_tr = np.array(X_sei_tr + X_non_sei_tr), np.append(y_sei_tr, y_non_sei_tr)
+    tr_dataset = TensorDataset(torch.FloatTensor(X_tr).permute(0,2,1), torch.LongTensor(y_tr))
+    X_te, y_te = np.array(X_sei_te + X_non_sei_te), np.append(y_sei_te, y_non_sei_te)
+    te_dataset = TensorDataset(torch.FloatTensor(X_te).permute(0,2,1), torch.LongTensor(y_te))
 
-    return torch.FloatTensor(X).permute(0,2,1), torch.LongTensor(y), len(p.get_channel_names())
+    return tr_dataset, te_dataset, len(p.get_channel_names()[0])
 
-def train_epoch(model, tr_dataloader, loss_fn, optimizer, device):
+def train_epoch(model, dataloader, loss_fn, optimizer, device):
 
-    train_loss, train_correct=0.0, 0
+    tr_loss = []
+    gt_lbl = torch.FloatTensor()
+    pr_lbl = torch.FloatTensor()
     model.train()
-    for eegs, lbls in tr_dataloader:
+    for eegs, lbls in dataloader:
         var_eeg = eegs.to(device)
         var_lbl = lbls.to(device)
         optimizer.zero_grad()
@@ -64,35 +83,49 @@ def train_epoch(model, tr_dataloader, loss_fn, optimizer, device):
         loss = loss_fn(var_out,var_lbl)
         loss.backward()
         optimizer.step()
-        train_loss += loss.item()*var_eeg.size(0)
-        _, predictions = torch.max(var_out.data, 1)
-        train_correct += (predictions == var_lbl).sum().item()
+        tr_loss.append(loss.item())
+        _, var_prd = torch.max(var_out.data, 1)
+        gt_lbl = torch.cat((gt_lbl, lbls), 0)
+        pr_lbl = torch.cat((pr_lbl, var_prd.cpu()), 0)
 
-    return train_loss, train_correct
+    tr_loss = np.mean(tr_loss)
+    tn, fp, fn, tp = confusion_matrix(gt_lbl.numpy(), pr_lbl.numpy()).ravel()
+    tr_sen = tp /(tp+fn)
+    tr_spe = tn /(tn+fp)
 
-def valid_epoch(model, te_dataloader, loss_fn, device):
-    valid_loss, val_correct = 0.0, 0
+    return tr_loss, tr_sen*100, tr_spe*100
+
+def eval_epoch(model, dataloader, loss_fn, device):
+
+    te_loss = []
+    gt_lbl = torch.FloatTensor()
+    pr_lbl = torch.FloatTensor()
     model.eval()
-    with torch.no_grad():
-        for eegs, lbls in te_dataloader:
-            var_eeg = eegs.to(device)
-            var_lbl = lbls.to(device)
-            var_out = model(var_eeg)
-            loss = loss_fn(var_out,var_lbl)
-            valid_loss+=loss.item()*var_eeg.size(0)
-            _, predictions = torch.max(var_out.data,1)
-            val_correct+=(predictions == var_lbl).sum().item()
+    for eegs, lbls in dataloader:
+        var_eeg = eegs.to(device)
+        var_lbl = lbls.to(device)
+        var_out = model(var_eeg)
+        loss = loss_fn(var_out,var_lbl)
+        te_loss.append(loss.item())
+        _, var_prd = torch.max(var_out.data, 1)
+        gt_lbl = torch.cat((gt_lbl, lbls), 0)
+        pr_lbl = torch.cat((pr_lbl, var_prd.cpu()), 0)
 
-    return valid_loss,val_correct
+    te_loss = np.mean(te_loss)
+    #https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html
+    tn, fp, fn, tp = confusion_matrix(gt_lbl.numpy(), pr_lbl.numpy()).ravel()
+    te_sen = tp /(tp+fn)
+    te_spe = tn /(tn+fp)
 
-def Train_Test():
+    return te_loss, te_sen, te_spe
+
+def Train_Eval():
 
     log_writer = SummaryWriter('/data/tmpexec/tb_log')
     torch.backends.cudnn.benchmark = True  # improve train speed slightly
-    for  p_id in [id for id in range(1, 25)]: # 24 cases
-        print('Patient {} train and validation.'.format(p_id))
-
-        X, y, in_ch = intra_patient_split(patient_id=p_id, seconds = 20)
+    for  p_id in [id for id in range(24, 25)]: # range(1,25)-24 cases
+        print('Patient_{} train and validation.'.format(p_id))
+        tr_dataset, te_dataset, in_ch = intra_patient_split(patient_id=p_id, seconds = 20)
 
         print('********************Build model********************')
         device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
@@ -102,37 +135,35 @@ def Train_Test():
         criterion = nn.CrossEntropyLoss()
 
         print('********************Train and validation********************')
-        dataset = TensorDataset(X, y)
-        kf_set = KFold(n_splits=10,shuffle=True).split(X, y)
-        te_acc = []
-        for f_id, (tr_idx, te_idx) in enumerate(kf_set):
-            print('Fold {} train and validation.'.format(f_id + 1))
-            tr_sampler = SubsetRandomSampler(tr_idx)
-            te_sampler = SubsetRandomSampler(te_idx)
-            tr_dataloader = DataLoader(dataset, batch_size = 32, sampler=tr_sampler) 
-            te_dataloader = DataLoader(dataset, batch_size = 32, sampler=te_sampler) 
+        te_dataloader = DataLoader(te_dataset, batch_size = 32, shuffle=True) 
+        sens, spes = [], []
+        for f_id in range(10):
+            print('Patient_{}: Fold_{}: Start Training.'.format(p_id, f_id + 1))
+            tr_dataloader = DataLoader(tr_dataset, batch_size = 32, shuffle=True)
             
-            best_te_acc = 50
+            best_sen, best_spe = 0.0, 0.0
             for epoch in range(20):
-                tr_loss, tr_correct=train_epoch(model, tr_dataloader, criterion, optimizer_model, device)
+                tr_loss, tr_sen, tr_spe = train_epoch(model, tr_dataloader, criterion, optimizer_model, device)
                 lr_scheduler_model.step()  #about lr and gamma
-                te_loss, te_correct=valid_epoch(model,te_dataloader,criterion, device)
+                te_loss, te_sen, te_spe = eval_epoch(model, te_dataloader, criterion, device)
 
-                tr_loss = tr_loss / len(tr_dataloader.sampler)
-                tr_correct = tr_correct / len(tr_dataloader.sampler) * 100
-                te_loss = te_loss / len(te_dataloader.sampler)
-                te_correct = te_correct / len(te_dataloader.sampler) * 100
-                
-                log_writer.add_scalars('Patient_{}/Fold_{}/Loss'.format(p_id, f_id), {'Train':tr_loss, 'Test':te_loss}, epoch+1)
-                log_writer.add_scalars('Patient_{}/Fold_{}/Acc'.format(p_id, f_id), {'Train':tr_correct, 'Test':te_correct}, epoch+1)
+                log_writer.add_scalars('Patient_{}/Fold_{}/Loss'.format(p_id, f_id + 1), {'Train':tr_loss, 'Test':te_loss}, epoch+1)
+                log_writer.add_scalars('Patient_{}/Fold_{}/Sen'.format(p_id, f_id + 1), {'Train':tr_sen, 'Test':te_sen}, epoch+1)
+                log_writer.add_scalars('Patient_{}/Fold_{}/Spe'.format(p_id, f_id + 1), {'Train':tr_spe, 'Test':te_spe}, epoch+1)
 
-                if te_correct > best_te_acc: best_te_acc = te_correct
-            te_acc.append(best_te_acc)
-            print('Performance of fold {} fold for patient {} cross validation: {:.2f}'.format(f_id, p_id, best_te_acc))
-        print('Performance of patient {} cross validation: {:.2f} +/- {:.2f}'.format(p_id, np.mean(te_acc), np.std(te_acc)))
+                if te_sen > best_sen: best_sen = te_sen
+                if te_spe > best_spe: best_spe = te_spe
+
+            print('Patient_{}: Fold_{}: Sensitivity: {:.6f}'.format(p_id, f_id + 1, best_sen))
+            print('Patient_{}: Fold_{}: Specificity: {:.6f}'.format(p_id, f_id + 1, best_spe))
+            sens.append(best_sen)
+            spes.append(best_spe)
+
+        print('Patient_{}: Sensitivity: {:.2f} +/- {:.2f}'.format(p_id, np.mean(sens)*100, np.std(sens)*100))
+        print('Patient_{}: Specificity: {:.2f} +/- {:.2f}'.format(p_id, np.mean(spes)*100, np.std(spes)*100))
 
 def main():
-    Train_Test()
+    Train_Eval()
 
 if __name__ == "__main__":
     main()

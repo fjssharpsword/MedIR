@@ -31,16 +31,21 @@ class Patient:
         #ch_names_com = np.array(self._edf_files[0].get_channel_names())
         ch_names_com = ['FP1-F7', 'F7-T7', 'T7-P7', 'P7-O1', 'FP1-F3', 'F3-C3', 'C3-P3', 'P3-O1', 'FP2-F4', 'F4-C4', 'C4-P4', \
                         'P4-O2', 'FP2-F8', 'F8-T8', 'T8-P8', 'P8-O2', 'FZ-CZ', 'CZ-PZ', 'P7-T7', 'T7-FT9', 'FT9-FT10', 'FT10-T8']
+        Ab_file_names = []
         for file in self._edf_files:
-            ch_names = np.array(file.get_channel_names())
-            ch_names_com = np.intersect1d(ch_names_com, ch_names)
-        return ch_names_com
+                ch_names = np.array(file.get_channel_names())
+                ch_tmp = np.intersect1d(ch_names_com, ch_names)
+                if len(ch_tmp) ==  0: 
+                    Ab_file_names.append(file.get_filename()) #different channel names
+                else:
+                    ch_names_com = ch_tmp
+        return ch_names_com, Ab_file_names
     
     def get_sampling_rate(self):
         return self._edf_files[0].get_sampling_rate()
 
     def get_eeg_data(self):
-        ch_com = self.get_channel_names()
+        ch_com, Ab_file_names = self.get_channel_names()
         for i, file in enumerate(self._edf_files):
             print ("Reading EEG data from file %s" % file._filename)
             ch_file = file.get_channel_names()
@@ -48,10 +53,17 @@ class Patient:
                 #data = file.get_data()
                 for j, ch in enumerate(ch_com):
                     if not j:
-                        data_file = file.get_channel_data(ch_file.index(ch))
+                        #exclude files with different channels names
+                        if file.get_filename() in Ab_file_names: 
+                            data_file = file.get_channel_data(j)
+                        else:
+                            data_file = file.get_channel_data(ch_file.index(ch))
                         data_file = data_file.reshape(-1,1)
                     else:
-                        data_ch = file.get_channel_data(ch_file.index(ch))
+                        if file.get_filename() in Ab_file_names:
+                            data_ch = file.get_channel_data(j)
+                        else:
+                            data_ch = file.get_channel_data(ch_file.index(ch))
                         data_ch = data_ch.reshape(-1,1)
                         data_file = np.hstack((data_file,data_ch))
                 data_pat = data_file
@@ -59,10 +71,16 @@ class Patient:
                 #align channels
                 for j, ch in enumerate(ch_com):
                     if not j:
-                        data_file = file.get_channel_data(ch_file.index(ch))
+                        if file.get_filename() in Ab_file_names:
+                            data_file = file.get_channel_data(j)
+                        else:
+                            data_file = file.get_channel_data(ch_file.index(ch))
                         data_file = data_file.reshape(-1,1)
                     else:
-                        data_ch = file.get_channel_data(ch_file.index(ch))
+                        if file.get_filename() in Ab_file_names:
+                            data_ch = file.get_channel_data(j)
+                        else:
+                            data_ch = file.get_channel_data(ch_file.index(ch))
                         data_ch = data_ch.reshape(-1,1)
                         data_file = np.hstack((data_file,data_ch))
                 data_pat = np.vstack((data_pat, data_file))
@@ -102,6 +120,6 @@ class Patient:
         return clips
     
 if __name__ == "__main__":
-    pat = Patient(21)
+    pat = Patient(24)
     data_pat = pat.get_seizure_clips()
     print(data_pat)

@@ -3,7 +3,7 @@ from torch.nn import functional as F
 import torch
 
 class EEGConvNet(nn.Module):
-    def __init__(self, in_ch = 23, num_classes=2):
+    def __init__(self, in_ch = 22, num_classes=2):
         # We optimize dropout rate in a convolutional neural network.
         super(EEGConvNet, self).__init__()
 
@@ -36,7 +36,7 @@ class EEGConvNet(nn.Module):
     
 if __name__ == "__main__":
 
-    x = torch.rand(10, 23, 5120).cuda()
-    model = EEGConvNet(in_ch = 23, num_classes=2).cuda()
+    x = torch.rand(10, 22, 5120).cuda()
+    model = EEGConvNet(in_ch = 22, num_classes=2).cuda()
     out = model(x)
     print(out.shape)
