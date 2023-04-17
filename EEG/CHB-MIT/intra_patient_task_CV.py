@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from patient import Patient
+from intra_patient import Patient
 from sklearn.model_selection import KFold
 import torch
 from torchvision import transforms

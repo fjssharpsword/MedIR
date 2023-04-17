@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import math
-from patient import Patient
+from intra_patient import Patient
 from sklearn.model_selection import KFold
 import torch
 from torchvision import transforms
@@ -16,8 +16,8 @@ from ConvNet import EEGConvNet
 from sklearn.metrics import confusion_matrix
 from tensorboardX import SummaryWriter
 
-# Generates splits within a patient (defaults seconds =20s)
-def intra_patient_split(patient_id, seconds = 20):
+# Generates splits within a patient (defaults seconds =2s)
+def intra_patient_split(patient_id, seconds = 2):
 
     p = Patient(patient_id)
     data = p.get_eeg_data()
@@ -32,8 +32,8 @@ def intra_patient_split(patient_id, seconds = 20):
         for i in range(num):
             pos = sei_seg[0]+i*win_len
             sei_data.append(data[pos:pos+win_len])
-        if (sei_seg[1]-pos)>win_len/2:
-            sei_data.append(data[pos:pos+win_len])
+        #if (sei_seg[1]-pos)>win_len/2:
+        #    sei_data.append(data[pos:pos+win_len])
     random.shuffle(sei_data)
     n_sei_te = max(1, int(math.ceil(0.2 * len(sei_data))))
     n_sei_tr = len(sei_data) - n_sei_te
@@ -45,13 +45,13 @@ def intra_patient_split(patient_id, seconds = 20):
     #negative samples
     non_sei_data = []
     for i in range(len(p._seizure_intervals)-1):
-        if len(non_sei_data) >= len(sei_data)*10: #pos:neg=1:10 
+        if len(non_sei_data) >= len(sei_data)*2: #pos:neg=1:2 
             break
         num = int((p._seizure_intervals[i+1][0]-p._seizure_intervals[i][1])/win_len)
         for j in range(num):
             pos = p._seizure_intervals[i][1]+j*win_len
             non_sei_data.append(data[pos:pos+win_len])
-            if len(non_sei_data) >= len(sei_data)*10: #pos:neg=1:10 
+            if len(non_sei_data) >= len(sei_data)*2: #pos:neg=1:2 
                 break
     random.shuffle(non_sei_data)
     n_non_sei_te = max(1, int(round(0.2 * len(non_sei_data))))
@@ -66,6 +66,8 @@ def intra_patient_split(patient_id, seconds = 20):
     tr_dataset = TensorDataset(torch.FloatTensor(X_tr).permute(0,2,1), torch.LongTensor(y_tr))
     X_te, y_te = np.array(X_sei_te + X_non_sei_te), np.append(y_sei_te, y_non_sei_te)
     te_dataset = TensorDataset(torch.FloatTensor(X_te).permute(0,2,1), torch.LongTensor(y_te))
+
+    p.close_files()#release files
 
     return tr_dataset, te_dataset, len(p.get_channel_names()[0])
 
@@ -121,11 +123,11 @@ def eval_epoch(model, dataloader, loss_fn, device):
 
 def Train_Eval():
 
-    log_writer = SummaryWriter('/data/tmpexec/tb_log')
+    #log_writer = SummaryWriter('/data/tmpexec/tb_log')
     torch.backends.cudnn.benchmark = True  # improve train speed slightly
-    for  p_id in [id for id in range(24, 25)]: # range(1,25)-24 cases
+    for  p_id in [id for id in range(21, 23)]: # range(1,25)-24 cases
         print('Patient_{} train and validation.'.format(p_id))
-        tr_dataset, te_dataset, in_ch = intra_patient_split(patient_id=p_id, seconds = 20)
+        tr_dataset, te_dataset, in_ch = intra_patient_split(patient_id=p_id, seconds = 2) # 20
 
         print('********************Build model********************')
         device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
@@ -147,9 +149,9 @@ def Train_Eval():
                 lr_scheduler_model.step()  #about lr and gamma
                 te_loss, te_sen, te_spe = eval_epoch(model, te_dataloader, criterion, device)
 
-                log_writer.add_scalars('Patient_{}/Fold_{}/Loss'.format(p_id, f_id + 1), {'Train':tr_loss, 'Test':te_loss}, epoch+1)
-                log_writer.add_scalars('Patient_{}/Fold_{}/Sen'.format(p_id, f_id + 1), {'Train':tr_sen, 'Test':te_sen}, epoch+1)
-                log_writer.add_scalars('Patient_{}/Fold_{}/Spe'.format(p_id, f_id + 1), {'Train':tr_spe, 'Test':te_spe}, epoch+1)
+                #log_writer.add_scalars('Patient_{}/Fold_{}/Loss'.format(p_id, f_id + 1), {'Train':tr_loss, 'Test':te_loss}, epoch+1)
+                #log_writer.add_scalars('Patient_{}/Fold_{}/Sen'.format(p_id, f_id + 1), {'Train':tr_sen, 'Test':te_sen}, epoch+1)
+                #log_writer.add_scalars('Patient_{}/Fold_{}/Spe'.format(p_id, f_id + 1), {'Train':tr_spe, 'Test':te_spe}, epoch+1)
 
                 if te_sen > best_sen: best_sen = te_sen
                 if te_spe > best_spe: best_spe = te_spe
@@ -159,8 +161,10 @@ def Train_Eval():
             sens.append(best_sen)
             spes.append(best_spe)
 
-        print('Patient_{}: Sensitivity: {:.2f} +/- {:.2f}'.format(p_id, np.mean(sens)*100, np.std(sens)*100))
-        print('Patient_{}: Specificity: {:.2f} +/- {:.2f}'.format(p_id, np.mean(spes)*100, np.std(spes)*100))
+        #print('Patient_{}: Sensitivity: {:.2f} +/- {:.2f}'.format(p_id, np.mean(sens)*100, np.std(sens)*100))
+        #print('Patient_{}: Specificity: {:.2f} +/- {:.2f}'.format(p_id, np.mean(spes)*100, np.std(spes)*100))
+        print('Patient_{}: Sensitivity: {:.2f}'.format(p_id, np.max(sens)*100))
+        print('Patient_{}: Specificity: {:.2f}'.format(p_id, np.max(spes)*100))
 
 def main():
     Train_Eval()

@@ -2,15 +2,13 @@ import torch.nn as nn
 from torch.nn import functional as F
 import torch
 
-class EEGConvNet(nn.Module):
+class EEGLSTMNet(nn.Module):
     def __init__(self, in_ch = 22, num_classes=2):
         # We optimize dropout rate in a convolutional neural network.
-        super(EEGConvNet, self).__init__()
+        super(EEGLSTMNet, self).__init__()
 
         self.conv1 = nn.Conv1d(in_channels=in_ch, out_channels=32, kernel_size=3, stride=2)
         self.pool1 = nn.MaxPool1d(kernel_size = 3)
-
-        #self.dropout = nn.Dropout(p=0.2) 
 
         self.conv2 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3, stride=2)
         self.pool2 = nn.MaxPool1d(kernel_size = 3)
@@ -24,7 +22,6 @@ class EEGConvNet(nn.Module):
 
         x = self.conv1(x)
         x = self.pool1(x)
-        #x = self.dropout(x)
 
         x = self.conv2(x)
         x = self.pool2(x)
@@ -39,7 +36,13 @@ class EEGConvNet(nn.Module):
     
 if __name__ == "__main__":
 
-    x = torch.rand(10, 22, 5120).cuda()
-    model = EEGConvNet(in_ch = 22, num_classes=2).cuda()
-    out = model(x)
-    print(out.shape)
+    #x = torch.rand(10, 22, 5120).cuda()
+    #model = EEGLSTMNet(in_ch = 22, num_classes=2).cuda()
+    #out = model(x)
+    #print(out.shape)
+    rnn = nn.LSTM(10, 20, 2)
+    input = torch.randn(5, 3, 10)
+    h0 = torch.randn(2, 3, 20)
+    c0 = torch.randn(2, 3, 20)
+    output, (hn, cn) = rnn(input, (h0, c0))
+    print(output)
