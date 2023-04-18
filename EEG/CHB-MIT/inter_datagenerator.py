@@ -7,6 +7,8 @@ import torchvision.transforms as transforms
 from inter_patient import Patient
 import random
 from sklearn import preprocessing
+import matplotlib.pyplot as plt
+import pywt
 
 """
 Dataset: OIA-DDR, https://github.com/nkicsl/DDR-dataset
@@ -29,9 +31,14 @@ class DatasetGenerator(Dataset):
             image and its labels
         """
         eeg = self.eeg_list[index]
+        #eeg = np.fft.fft2(eeg, axes=(1,)) #DFT on column
+        eeg, _, _, _ = plt.specgram(np.mean(eeg, axis=1), NFFT=2560, Fs=2, noverlap=2558)
+        #eeg, _ = pywt.cwt(np.mean(eeg, axis=1), np.arange(1, 512+1), 'cgau8')
+
         lbl = self.lbl_list[index]
 
-        eeg = torch.FloatTensor(eeg).permute(1,0)
+        #eeg = torch.FloatTensor(eeg).permute(1,0)
+        eeg = torch.FloatTensor(eeg).unsqueeze(0)
         lbl = torch.as_tensor(lbl, dtype=torch.long)
 
         return eeg, lbl
