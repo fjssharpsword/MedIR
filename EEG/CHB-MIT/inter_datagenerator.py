@@ -46,7 +46,7 @@ def get_intra_dataset(batch_size, shuffle, num_workers, dst_type='train'):
     eeg_dataloader = DataLoader(dataset=eeg_dataset, batch_size=batch_size,shuffle=shuffle, num_workers=num_workers, pin_memory=True)
     return eeg_dataloader
 
-def split_intra_patients(seconds=2, neg_rate=2):
+def split_inter_patients(seconds=2, neg_rate=2):
     #parameters:
     #seconds: windows sliding length
     #neg_rate: times of negative samples to positive samples
@@ -130,7 +130,7 @@ def split_intra_patients(seconds=2, neg_rate=2):
     np.save(PATH_TO_DST_ROOT+'train/eeg.npy', X_tr)
     np.save(PATH_TO_DST_ROOT+'train/lbl.npy', y_tr)
 
-def intra_patients_datasets(seconds=2, neg_rate=2):
+def inter_patients_CV(seconds=2, neg_rate=2):
 
     patient_ids = [id for id in range(1, 25)]
     patient_ids.remove(12) # delete patient 12 with different channels.
@@ -179,12 +179,12 @@ def intra_patients_datasets(seconds=2, neg_rate=2):
 
 if __name__ == "__main__":
     #split datasets
-    #split_intra_patients(seconds=2, neg_rate=2)
+    #split_inter_patients(seconds=20, neg_rate=2)
     #for debug   
-    #eeg_dst = get_intra_dataset(batch_size=2, shuffle=True, num_workers=0, dst_type='test')
-    #for idx, (eeg, lbl) in enumerate(eeg_dst):
-    #    print(eeg.shape)
-    #    print(lbl.shape)
-    #    break
-
-    intra_patients_datasets(seconds=2, neg_rate=2)
+    eeg_dst = get_intra_dataset(batch_size=2, shuffle=True, num_workers=0, dst_type='train')
+    for idx, (eeg, lbl) in enumerate(eeg_dst):
+        print(eeg.shape)
+        print(lbl.shape)
+        break
+    #for k-fold cross validation
+    #inter_patients_CV(seconds=2, neg_rate=2)

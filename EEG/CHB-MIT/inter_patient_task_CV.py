@@ -21,8 +21,8 @@ PATH_TO_DST_ROOT = '/data/pycode/MedIR/EEG/CHB-MIT/dsts/'
 def train_epoch(model, dataloader, loss_fn, optimizer, device):
 
     tr_loss = []
+    tr_acc = 0.0
     gt_lbl = torch.FloatTensor()
-    pr_lbl = torch.FloatTensor()
     model.train()
     for eegs, lbls in dataloader:
         var_eeg = eegs.to(device)
@@ -35,20 +35,19 @@ def train_epoch(model, dataloader, loss_fn, optimizer, device):
         tr_loss.append(loss.item())
         _, var_prd = torch.max(var_out.data, 1)
         gt_lbl = torch.cat((gt_lbl, lbls), 0)
-        pr_lbl = torch.cat((pr_lbl, var_prd.cpu()), 0)
+        tr_acc += (var_prd == var_lbl).sum().item()
 
     tr_loss = np.mean(tr_loss)
-    tn, fp, fn, tp = confusion_matrix(gt_lbl.numpy(), pr_lbl.numpy()).ravel()
-    tr_sen = tp /(tp+fn)
-    tr_spe = tn /(tn+fp)
+    tr_acc = tr_acc/len(gt_lbl)
 
-    return tr_loss, tr_sen, tr_spe
+    return tr_loss, tr_acc
 
 def eval_epoch(model, dataloader, loss_fn, device):
 
     te_loss = []
     gt_lbl = torch.FloatTensor()
     pr_lbl = torch.FloatTensor()
+    te_acc = 0.0
     model.eval()
     for eegs, lbls in dataloader:
         var_eeg = eegs.to(device)
@@ -59,6 +58,7 @@ def eval_epoch(model, dataloader, loss_fn, device):
         _, var_prd = torch.max(var_out.data, 1)
         gt_lbl = torch.cat((gt_lbl, lbls), 0)
         pr_lbl = torch.cat((pr_lbl, var_prd.cpu()), 0)
+        te_acc += (var_prd == var_lbl).sum().item()
 
     te_loss = np.mean(te_loss)
     #https://scikit-learn.org/stable/modules/generated/sklearn.metrics.confusion_matrix.html
@@ -66,7 +66,9 @@ def eval_epoch(model, dataloader, loss_fn, device):
     te_sen = tp /(tp+fn)
     te_spe = tn /(tn+fp)
 
-    return te_loss, te_sen, te_spe
+    te_acc = te_acc/len(gt_lbl)
+
+    return te_loss, te_sen, te_spe, te_acc
 
 def Train_Eval():
 
@@ -74,7 +76,7 @@ def Train_Eval():
     device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
     
     model = EEGConvNet(in_ch = 18, num_classes=2).to(device)  
-    optimizer_model = optim.Adam(model.parameters(), lr=0.01, betas=(0.9, 0.999), eps=1e-08, weight_decay=1e-4)
+    optimizer_model = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=1e-4)
     lr_scheduler_model = lr_scheduler.StepLR(optimizer_model , step_size = 10, gamma = 1)
     criterion = nn.CrossEntropyLoss()
     torch.backends.cudnn.benchmark = True  # improve train speed slightly
@@ -84,36 +86,48 @@ def Train_Eval():
     X, y = np.load(PATH_TO_DST_ROOT+'eeg_kfold.npy'), np.load(PATH_TO_DST_ROOT+'lbl_kfold.npy')
     dataset = TensorDataset(torch.FloatTensor(X).permute(0,2,1), torch.LongTensor(y))
     kf_set = KFold(n_splits=10,shuffle=True).split(X, y)
-    sen_list, spe_list = [], []
+    sen_list, spe_list, acc_list = [], [], []
     for f_id, (tr_idx, te_idx) in enumerate(kf_set):
-        print('Fold {} train and validation.'.format(f_id + 1))
-        tr_sampler = SubsetRandomSampler(tr_idx)
-        te_sampler = SubsetRandomSampler(te_idx)
-        tr_dataloader = DataLoader(dataset, batch_size = 32, sampler=tr_sampler) 
-        te_dataloader = DataLoader(dataset, batch_size = 32, sampler=te_sampler) 
-
-        best_sen, best_spe = 0.0, 0.0
-        for epoch in range(10):
+        print('\n Fold {} train and validation.'.format(f_id + 1))
+        
+        best_sen, best_spe, best_acc = 0.0, 0.0, 0.0
+        for epoch in range(20):
+            tr_sampler = SubsetRandomSampler(tr_idx)
+            te_sampler = SubsetRandomSampler(te_idx)
+            tr_dataloader = DataLoader(dataset, batch_size = 128, sampler=tr_sampler) 
+            te_dataloader = DataLoader(dataset, batch_size = 128, sampler=te_sampler)
                 
-            tr_loss, tr_sen, tr_spe = train_epoch(model, tr_dataloader, criterion, optimizer_model, device)
+            tr_loss, tr_acc = train_epoch(model, tr_dataloader, criterion, optimizer_model, device)
             lr_scheduler_model.step()  #about lr and gamma
-            te_loss, te_sen, te_spe = eval_epoch(model, te_dataloader, criterion, device)
+            _, te_sen, te_spe, te_acc = eval_epoch(model, te_dataloader, criterion, device)
 
             #log_writer.add_scalars('EEG/CHB-MIT/Loss', {'Train':tr_loss, 'Test':te_loss}, epoch+1)
-            print('Train Epoch_{}: Loss={:.4f}, Sensitivity={:.4f}, Specificity={:.4f}'.format(epoch+1, tr_loss, tr_sen, tr_spe))
-            print('Validation Epoch_{}: Loss={:.4f}, Sensitivity={:.4f}, Specificity={:.4f}'.format(epoch+1, te_loss, te_sen, te_spe))
+            print('\n Train Epoch_{}: Loss={:.4f}, Accuracy={:.4f}'.format(epoch+1, tr_loss, tr_acc))
+            print('\n Validation Epoch_{}: Accuracy={:.4f}, Sensitivity={:.4f}, Specificity={:.4f}'.format(epoch+1, te_acc, te_sen, te_spe))
 
-            if te_sen > best_sen: 
+            if te_acc > best_acc:
+                best_acc = te_acc
                 best_sen = te_sen
                 best_spe = te_spe
+
         sen_list.append(best_sen)
         spe_list.append(best_spe)
-        print('Fold_{}: Sensitivity={:.2f}, Specificity={:.2f}'.format(f_id + 1, best_sen*100, best_spe*100))
-    print('Sensitivity={:.2f}, Specificity={:.2f}'.format(np.mean(sen_list)*100, np.mean(spe_list)*100))
+        acc_list.append(best_acc)
+
+        print('\n Fold_{}: Accuracy={:.2f}, Sensitivity={:.2f}, Specificity={:.2f}'.format(f_id + 1, best_acc*100, best_sen*100, best_spe*100))
+
+    idx = np.argmax(acc_list)
+    print('\n Maximum performance: Accuracy={:.2f}, Sensitivity={:.2f}, Specificity={:.2f}'.format(np.max(acc_list)*100,  sen_list[idx]*100, spe_list[idx]*100))
+    print('\n Average performance: Accuracy={:.2f}+/-{:.2f},\
+                                   Sensitivity={:.2f}+/-{:.2f},\
+                                   Specificity={:.2f}+/-{:.2f}'.format(\
+                                   np.mean(acc_list)*100, np.std(acc_list)*100,\
+                                   np.mean(sen_list)*100, np.std(sen_list)*100,\
+                                   np.mean(spe_list)*100, np.std(spe_list)*100))
 
 def main():
     Train_Eval()
 
 if __name__ == "__main__":
     main()
-    #nohup python3 inter_patient_task.py > logs/intra_patient_task.log 2>&1 &
+    #nohup python3 inter_patient_task_CV.py > logs/intra_patient_task.log 2>&1 &
