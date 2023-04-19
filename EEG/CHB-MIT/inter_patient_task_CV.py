@@ -11,11 +11,10 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.utils.data import TensorDataset, DataLoader, SubsetRandomSampler
 from sklearn.model_selection import train_test_split
-from ConvNet import EEG1DConvNet
 from sklearn.metrics import confusion_matrix
 from tensorboardX import SummaryWriter
 #self-defined
-from inter_datagenerator import get_intra_dataset
+from ConvNet import EEG1DConvNet
 
 PATH_TO_DST_ROOT = '/data/pycode/MedIR/EEG/CHB-MIT/dsts/'
 def train_epoch(model, dataloader, loss_fn, optimizer, device):

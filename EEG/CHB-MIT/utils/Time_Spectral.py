@@ -79,5 +79,5 @@ def output_specgram():
 
 if __name__ == "__main__":
     #get_fft_values()
-    #calculate_freq()
-    output_specgram()
+    calculate_freq()
+    #output_specgram()

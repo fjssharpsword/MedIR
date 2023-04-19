@@ -1,45 +1,69 @@
-import torch.nn as nn
-from torch.nn import functional as F
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
-class EEGLSTMNet(nn.Module):
-    def __init__(self, in_ch = 22, num_classes=2):
-        # We optimize dropout rate in a convolutional neural network.
-        super(EEGLSTMNet, self).__init__()
+#https://github.com/torcheeg/torcheeg/blob/main/torcheeg/models/rnn/lstm.py
+class LSTM(nn.Module):
+    r'''
+    A simple but effective long-short term memory (LSTM) network structure from the book of Zhang et al. For more details, please refer to the following information.
 
-        self.conv1 = nn.Conv1d(in_channels=in_ch, out_channels=32, kernel_size=3, stride=2)
-        self.pool1 = nn.MaxPool1d(kernel_size = 3)
+    - Book: Zhang X, Yao L. Deep Learning for EEG-Based Brain-Computer Interfaces: Representations, Algorithms and Applications[M]. 2021.
+    - URL: https://www.worldscientific.com/worldscibooks/10.1142/q0282#t=aboutBook
+    - Related Project: https://github.com/xiangzhang1015/Deep-Learning-for-BCI/blob/master/pythonscripts/4-1-1_LSTM.py
 
-        self.conv2 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3, stride=2)
-        self.pool2 = nn.MaxPool1d(kernel_size = 3)
+    Below is a recommended suite for use in emotion recognition tasks:
 
-        self.pool3 = nn.AdaptiveAvgPool2d((32,32))
-        self.fc1 = nn.Linear(1024, 256)
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(256, num_classes)
+    .. code-block:: python
 
-    def forward(self, x):
+        dataset = DEAPDataset(io_path=f'./deap',
+                    root_path='./data_preprocessed_python',
+                    online_transform=transforms.ToTensor(),
+                    label_transform=transforms.Compose([
+                        transforms.Select('valence'),
+                        transforms.Binary(5.0),
+                    ]))
+        model = GRU(num_electrodes=32, hid_channels=64, num_classes=2)
 
-        x = self.conv1(x)
-        x = self.pool1(x)
+    Args:
+        num_electrodes (int): The number of electrodes, i.e., :math:`C` in the paper. (defualt: :obj:`32`)
+        hid_channels (int): The number of hidden nodes in the GRU layers and the fully connected layer. (defualt: :obj:`64`)
+        num_classes (int): The number of classes to predict. (defualt: :obj:`2`)
+    '''
+    def __init__(self,
+                 num_electrodes: int = 32,
+                 hid_channels: int = 64,
+                 num_classes: int = 2):
+        super(LSTM, self).__init__()
 
-        x = self.conv2(x)
-        x = self.pool2(x)
+        self.num_electrodes = num_electrodes
+        self.hid_channels = hid_channels
+        self.num_classes = num_classes
 
-        x = self.pool3(x)
-        x = x.view(x.size(0),-1)
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
+        self.gru_layer = nn.LSTM(input_size=num_electrodes,
+                                 hidden_size=hid_channels,
+                                 num_layers=2,
+                                 bias=True,
+                                 batch_first=True)
 
+        self.out = nn.Linear(hid_channels, num_classes)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        r'''
+        Args:
+            x (torch.Tensor): EEG signal representation, the ideal input shape is :obj:`[n, 32, 128]`. Here, :obj:`n` corresponds to the batch size, :obj:`32` corresponds to :obj:`num_electrodes`, and :obj:`128` corresponds to the number of data points included in the input EEG chunk.
+
+        Returns:
+            torch.Tensor[number of sample, number of classes]: the predicted probability that the samples belong to the classes.
+        '''
+        x = x.permute(0, 2, 1)
+
+        r_out, (_, _) = self.gru_layer(x, None)
+        r_out = F.dropout(r_out, 0.3)
+        x = self.out(r_out[:, -1, :])  # choose r_out at the last time step
         return x
     
 if __name__ == "__main__":
 
-    #x = torch.rand(10, 22, 5120).cuda()
-    #model = EEGLSTMNet(in_ch = 22, num_classes=2).cuda()
-    #out = model(x)
-    #print(out.shape)
     rnn = nn.LSTM(10, 20, 2)
     input = torch.randn(5, 3, 10)
     h0 = torch.randn(2, 3, 20)

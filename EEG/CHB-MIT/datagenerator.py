@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import pywt
 
 """
-Dataset: OIA-DDR, https://github.com/nkicsl/DDR-dataset
+Dataset: CHB-MIT, https://physionet.org/content/chbmit/1.0.0/
 """
 
 class DatasetGenerator(Dataset):

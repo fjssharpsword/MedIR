@@ -11,11 +11,11 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.utils.data import TensorDataset, DataLoader, SubsetRandomSampler
 from sklearn.model_selection import train_test_split
-from ConvNet import EEG1DConvNet
 from sklearn.metrics import confusion_matrix
+import pywt
 from tensorboardX import SummaryWriter
 #self-defined
-from inter_datagenerator import get_intra_dataset
+from ConvNet import EEG2DConvNet, EEG1DConvNet
 
 PATH_TO_DST_ROOT = '/data/pycode/MedIR/EEG/CHB-MIT/dsts/'
 def train_epoch(model, dataloader, loss_fn, optimizer, device):
@@ -75,15 +75,17 @@ def Train_Eval():
     print('********************Build model********************')
     device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
     
-    model = EEG1DConvNet(in_ch = 18, num_classes=2).to(device)  
+    model = EEG1DConvNet(in_ch = 18, num_classes=2).to(device)   
     optimizer_model = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=1e-4)
     lr_scheduler_model = lr_scheduler.StepLR(optimizer_model , step_size = 10, gamma = 1)
     criterion = nn.CrossEntropyLoss()
     torch.backends.cudnn.benchmark = True  # improve train speed slightly
     #log_writer = SummaryWriter('/data/tmpexec/tb_log')
-   
+    
     print('********************Train and validation********************')
     X, y = np.load(PATH_TO_DST_ROOT+'eeg_kfold.npy'), np.load(PATH_TO_DST_ROOT+'lbl_kfold.npy')
+    #X, _ = pywt.dwt(X, 'haar', mode='symmetric', axis=1) #wavelet transform
+    #X = np.fft.fft(X, axis=1) #Fourier transform
     dataset = TensorDataset(torch.FloatTensor(X).permute(0,2,1), torch.LongTensor(y))
     kf_set = KFold(n_splits=10,shuffle=True).split(X, y)
     sen_list, spe_list, acc_list = [], [], []
@@ -130,4 +132,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    #nohup python3 inter_patient_task_CV.py > logs/intra_patient_task.log 2>&1 &
+    #nohup python3 inter_patient_task_CV_WT.py > logs/intra_patient_task.log 2>&1 &
