@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 #https://github.com/torcheeg/torcheeg/blob/main/torcheeg/models/rnn/lstm.py
-class LSTM(nn.Module):
+class EEGLSTM(nn.Module):
     r'''
     A simple but effective long-short term memory (LSTM) network structure from the book of Zhang et al. For more details, please refer to the following information.
 
@@ -33,7 +33,7 @@ class LSTM(nn.Module):
                  num_electrodes: int = 32,
                  hid_channels: int = 64,
                  num_classes: int = 2):
-        super(LSTM, self).__init__()
+        super(EEGLSTM, self).__init__()
 
         self.num_electrodes = num_electrodes
         self.hid_channels = hid_channels
@@ -50,7 +50,10 @@ class LSTM(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         r'''
         Args:
-            x (torch.Tensor): EEG signal representation, the ideal input shape is :obj:`[n, 32, 128]`. Here, :obj:`n` corresponds to the batch size, :obj:`32` corresponds to :obj:`num_electrodes`, and :obj:`128` corresponds to the number of data points included in the input EEG chunk.
+            x (torch.Tensor): EEG signal representation, the ideal input shape is :obj:`[n, 32, 128]`. 
+            Here, :obj:`n` corresponds to the batch size, 
+                  :obj:`32` corresponds to :obj:`num_electrodes`
+                  :obj:`128` corresponds to the number of data points included in the input EEG chunk.
 
         Returns:
             torch.Tensor[number of sample, number of classes]: the predicted probability that the samples belong to the classes.
@@ -63,10 +66,16 @@ class LSTM(nn.Module):
         return x
     
 if __name__ == "__main__":
-
+    """
     rnn = nn.LSTM(10, 20, 2)
     input = torch.randn(5, 3, 10)
     h0 = torch.randn(2, 3, 20)
     c0 = torch.randn(2, 3, 20)
     output, (hn, cn) = rnn(input, (h0, c0))
     print(output)
+    """
+
+    x = torch.rand(10, 18, 512).cuda()
+    model = EEGLSTM(num_electrodes = 18, hid_channels=64, num_classes=2).cuda()
+    out = model(x)
+    print(out.shape)

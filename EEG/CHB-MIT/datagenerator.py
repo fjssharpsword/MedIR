@@ -158,7 +158,7 @@ def inter_patients_CV(seconds=2, neg_rate=2):
     for p_id in patient_ids:
         p = Patient(p_id)
         data = p.get_eeg_data(ch_com)
-        win_len = int(p.get_sampling_rate() * seconds)
+        win_len = int(p.get_sampling_rate() * seconds) + 1
 
         for sei_seg in p._seizure_intervals:
             num = int((sei_seg[1]-sei_seg[0])/win_len)
@@ -181,17 +181,18 @@ def inter_patients_CV(seconds=2, neg_rate=2):
 
     X = np.array(sei_data + non_sei_data)
     y = np.array(sei_idx + non_sei_idx)  
-    np.save(PATH_TO_DST_ROOT+'eeg_kfold.npy', X)
-    np.save(PATH_TO_DST_ROOT+'lbl_kfold.npy', y)
+    np.save(PATH_TO_DST_ROOT+'eeg_kfold_100ms.npy', X)
+    np.save(PATH_TO_DST_ROOT+'lbl_kfold_100ms.npy', y)
 
 if __name__ == "__main__":
     #split datasets
     #split_inter_patients(seconds=20, neg_rate=2)
     #for debug   
-    eeg_dst = get_intra_dataset(batch_size=2, shuffle=True, num_workers=0, dst_type='train')
-    for idx, (eeg, lbl) in enumerate(eeg_dst):
-        print(eeg.shape)
-        print(lbl.shape)
-        break
+    #eeg_dst = get_intra_dataset(batch_size=2, shuffle=True, num_workers=0, dst_type='train')
+    #for idx, (eeg, lbl) in enumerate(eeg_dst):
+    #    print(eeg.shape)
+    #    print(lbl.shape)
+    #    break
     #for k-fold cross validation
     #inter_patients_CV(seconds=2, neg_rate=2)
+    inter_patients_CV(seconds=0.1, neg_rate=2)
