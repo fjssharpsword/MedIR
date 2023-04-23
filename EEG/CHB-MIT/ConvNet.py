@@ -76,12 +76,12 @@ class EEG2DConvNet(nn.Module):
     
 if __name__ == "__main__":
 
-    x = torch.rand(10, 1, 512, 512).cuda()
-    model = EEG2DConvNet(in_ch = 1, num_classes=2).cuda()
-    out = model(x)
-    print(out.shape)
-
-    #x = torch.rand(10, 18, 512).cuda()
-    #model = EEG1DConvNet(in_ch = 18, num_classes=2).cuda()
+    #x = torch.rand(10, 1, 512, 512).cuda()
+    #model = EEG2DConvNet(in_ch = 1, num_classes=2).cuda()
     #out = model(x)
     #print(out.shape)
+
+    x = torch.rand(10, 18, 128).cuda()
+    model = EEG1DConvNet(in_ch = 18, num_classes=2).cuda()
+    out = model(x)
+    print(out.shape)

@@ -163,6 +163,6 @@ class EEGDGCNN(nn.Module):
 if __name__ == "__main__":
 
     x = torch.rand(10, 18, 512).cuda()
-    model = EEGDGCNN(in_channels = 18, num_electrodes = 512, num_classes=2).cuda()
+    model = EEGDGCNN(in_channels = 18, num_electrodes = 128, num_classes=2).cuda()
     out = model(x)
     print(out.shape)

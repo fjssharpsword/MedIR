@@ -74,23 +74,17 @@ def eval_epoch(model, dataloader, loss_fn, device):
 
 def Train_Eval():
 
-    print('********************Build model********************')
     device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
-    
-    #model = EEG1DConvNet(in_ch = 18, num_classes=2).to(device)  #CNN
-    #model = EEGLSTM(num_electrodes = 18, hid_channels=64, num_classes=2).to(device) #RNN
-    model = EEGDGCNN(in_channels = 18, num_electrodes = 256, num_classes=2).to(device) #GCN
-
-    optimizer_model = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=1e-4)
-    lr_scheduler_model = lr_scheduler.StepLR(optimizer_model , step_size = 10, gamma = 1)
-    criterion = nn.CrossEntropyLoss()
     torch.backends.cudnn.benchmark = True  # improve train speed slightly
     #log_writer = SummaryWriter('/data/tmpexec/tb_log')
     
     print('********************Train and validation********************')
-    X, y = np.load(PATH_TO_DST_ROOT+'eeg_kfold.npy'), np.load(PATH_TO_DST_ROOT+'lbl_kfold.npy')
-    #X = np.fft.fft(X, axis=1) #Fourier transform
-    X, _ = pywt.dwt(X, 'haar', mode='symmetric', axis=1) #wavelet transform
+    X, y = np.load(PATH_TO_DST_ROOT+'eeg_kfold_500ms.npy'), np.load(PATH_TO_DST_ROOT+'lbl_kfold_500ms.npy') #time domain
+
+    X = np.fft.fft(X, axis=1) #Fourier transform, frequence domian
+
+    #X_cA, X_cD = pywt.dwt(X, 'haar', mode='symmetric', axis=1) #wavelet transform, time-frequence domain
+    #X = np.concatenate((X_cA, X_cD), axis=1)
 
     dataset = TensorDataset(torch.FloatTensor(X).permute(0,2,1), torch.LongTensor(y))
     kf_set = KFold(n_splits=10,shuffle=True).split(X, y)
@@ -98,12 +92,20 @@ def Train_Eval():
     for f_id, (tr_idx, te_idx) in enumerate(kf_set):
         print('\n Fold {} train and validation.'.format(f_id + 1))
         
+        model = EEG1DConvNet(in_ch = 18, num_classes=2).to(device)  #CNN
+        #model = EEGLSTM(num_electrodes = 18, hid_channels=64, num_classes=2).to(device) #RNN
+        #model = EEGDGCNN(in_channels = 18, num_electrodes = 128, num_classes=2).to(device) #GCN
+
+        optimizer_model = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=1e-4)
+        lr_scheduler_model = lr_scheduler.StepLR(optimizer_model , step_size = 10, gamma = 1)
+        criterion = nn.CrossEntropyLoss()
+        
         best_sen, best_spe, best_acc = 0.0, 0.0, 0.0
-        for epoch in range(20):
+        for epoch in range(100):
             tr_sampler = SubsetRandomSampler(tr_idx)
             te_sampler = SubsetRandomSampler(te_idx)
-            tr_dataloader = DataLoader(dataset, batch_size = 128, sampler=tr_sampler) 
-            te_dataloader = DataLoader(dataset, batch_size = 128, sampler=te_sampler)
+            tr_dataloader = DataLoader(dataset, batch_size = 512, sampler=tr_sampler) #20s-128, 0.5s-512
+            te_dataloader = DataLoader(dataset, batch_size = 512, sampler=te_sampler)
                 
             tr_loss, tr_acc = train_epoch(model, tr_dataloader, criterion, optimizer_model, device)
             lr_scheduler_model.step()  #about lr and gamma
@@ -113,7 +115,7 @@ def Train_Eval():
             print('\n Train Epoch_{}: Loss={:.4f}, Accuracy={:.4f}'.format(epoch+1, tr_loss, tr_acc))
             print('\n Validation Epoch_{}: Accuracy={:.4f}, Sensitivity={:.4f}, Specificity={:.4f}'.format(epoch+1, te_acc, te_sen, te_spe))
 
-            if te_acc > best_acc:
+            if te_sen > best_sen:
                 best_acc = te_acc
                 best_sen = te_sen
                 best_spe = te_spe
