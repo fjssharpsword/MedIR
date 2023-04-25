@@ -81,7 +81,7 @@ if __name__ == "__main__":
     #out = model(x)
     #print(out.shape)
 
-    x = torch.rand(10, 18, 128).cuda()
+    x = torch.rand(10, 18, 512).cuda()
     model = EEG1DConvNet(in_ch = 18, num_classes=2).cuda()
     out = model(x)
     print(out.shape)

@@ -18,6 +18,9 @@ from tensorboardX import SummaryWriter
 from ConvNet import EEG2DConvNet, EEG1DConvNet
 from LSTMNet import EEGLSTM
 from GCNNet import EEGDGCNN
+from nets.tsception import TSCeption
+from nets.vanilla_transformer import VanillaTransformer
+from nets.arjun_vit import ArjunViT
 
 PATH_TO_DST_ROOT = '/data/pycode/MedIR/EEG/CHB-MIT/dsts/'
 def train_epoch(model, dataloader, loss_fn, optimizer, device):
@@ -79,12 +82,12 @@ def Train_Eval():
     #log_writer = SummaryWriter('/data/tmpexec/tb_log')
     
     print('********************Train and validation********************')
-    X, y = np.load(PATH_TO_DST_ROOT+'eeg_kfold_500ms.npy'), np.load(PATH_TO_DST_ROOT+'lbl_kfold_500ms.npy') #time domain
+    X, y = np.load(PATH_TO_DST_ROOT+'eeg_kfold_2s.npy'), np.load(PATH_TO_DST_ROOT+'lbl_kfold_2s.npy') #time domain
 
-    X = np.fft.fft(X, axis=1) #Fourier transform, frequence domian
+    #X = np.fft.fft(X, axis=1) #Fourier transform, frequence domian
 
-    #X_cA, X_cD = pywt.dwt(X, 'haar', mode='symmetric', axis=1) #wavelet transform, time-frequence domain
-    #X = np.concatenate((X_cA, X_cD), axis=1)
+    X_cA, X_cD = pywt.dwt(X, 'haar', mode='symmetric', axis=1) #wavelet transform, time-frequence domain
+    X = np.concatenate((X_cA, X_cD), axis=1)
 
     dataset = TensorDataset(torch.FloatTensor(X).permute(0,2,1), torch.LongTensor(y))
     kf_set = KFold(n_splits=10,shuffle=True).split(X, y)
@@ -92,9 +95,13 @@ def Train_Eval():
     for f_id, (tr_idx, te_idx) in enumerate(kf_set):
         print('\n Fold {} train and validation.'.format(f_id + 1))
         
-        model = EEG1DConvNet(in_ch = 18, num_classes=2).to(device)  #CNN
+        #model = EEG1DConvNet(in_ch = 18, num_classes=2).to(device)  #CNN
         #model = EEGLSTM(num_electrodes = 18, hid_channels=64, num_classes=2).to(device) #RNN
-        #model = EEGDGCNN(in_channels = 18, num_electrodes = 128, num_classes=2).to(device) #GCN
+        #model = EEGDGCNN(in_channels = 18, num_electrodes = 512, num_classes=2).to(device) #GCN
+
+        #model = TSCeption(num_electrodes=18, num_classes=2).to(device)
+        #model = VanillaTransformer(num_electrodes=18, chunk_size=512, num_classes=2).to(device)
+        model = ArjunViT(num_electrodes=18, chunk_size=512, num_classes=2).to(device)
 
         optimizer_model = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=1e-4)
         lr_scheduler_model = lr_scheduler.StepLR(optimizer_model , step_size = 10, gamma = 1)
@@ -104,8 +111,8 @@ def Train_Eval():
         for epoch in range(100):
             tr_sampler = SubsetRandomSampler(tr_idx)
             te_sampler = SubsetRandomSampler(te_idx)
-            tr_dataloader = DataLoader(dataset, batch_size = 512, sampler=tr_sampler) #20s-128, 0.5s-512
-            te_dataloader = DataLoader(dataset, batch_size = 512, sampler=te_sampler)
+            tr_dataloader = DataLoader(dataset, batch_size = 128, sampler=tr_sampler) #20s-128, 0.5s-512
+            te_dataloader = DataLoader(dataset, batch_size = 128, sampler=te_sampler)
                 
             tr_loss, tr_acc = train_epoch(model, tr_dataloader, criterion, optimizer_model, device)
             lr_scheduler_model.step()  #about lr and gamma

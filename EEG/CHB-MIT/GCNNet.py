@@ -151,7 +151,7 @@ class EEGDGCNN(nn.Module):
         Returns:
             torch.Tensor[number of sample, number of classes]: the predicted probability that the samples belong to the classes.
         '''
-        x = x.permute(0, 2, 1)
+        x = x.permute(0, 2, 1) #graph on chunk data
         x = self.BN1(x.transpose(1, 2)).transpose(1, 2)
         L = normalize_A(self.A)
         result = self.layer1(x, L)
@@ -163,6 +163,7 @@ class EEGDGCNN(nn.Module):
 if __name__ == "__main__":
 
     x = torch.rand(10, 18, 512).cuda()
-    model = EEGDGCNN(in_channels = 18, num_electrodes = 128, num_classes=2).cuda()
+    #model = EEGDGCNN(in_channels = 512, num_electrodes = 18, num_classes=2).cuda() #graph on electrodes
+    model = EEGDGCNN(in_channels = 18, num_electrodes = 512, num_classes=2).cuda() #graph on chunk data
     out = model(x)
     print(out.shape)
