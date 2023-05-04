@@ -6,6 +6,7 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 import random
+import math
 from sklearn import preprocessing
 import matplotlib.pyplot as plt
 import pywt
@@ -28,7 +29,8 @@ class DatasetGenerator(Dataset):
         eeg_list, chn_list = [], []
         #com_chn = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7', 'F8', 'T3', 'T4', 'T5', 'T6', 'Fz', 'Cz', 'Pz']
         for id in id_list:
-            eeg_path = path_to_eeg_dir + id +'/eeg/' + id + '_task-eyesclosed_eeg.set'
+            eeg_path = path_to_eeg_dir + 'derivatives/' + id +'/eeg/' + id + '_task-eyesclosed_eeg.set'
+            #eeg_path = path_to_eeg_dir + id +'/eeg/' + id + '_task-eyesclosed_eeg.set'
             eeg_list.append(eeg_path)
             chn_path = path_to_eeg_dir + id +'/eeg/' + id + '_task-eyesclosed_channels.tsv'
             chn_df = pd.read_csv(chn_path, sep='\t')
@@ -44,25 +46,44 @@ class DatasetGenerator(Dataset):
         Args:
             index: the index of item
         Returns:
-            image and its labels
+            bags: 
+            {
+                key1: [ind1, ind2, ind3],
+                key2: [ind1, ind2, ind3, ind4, ind5],
+            ... }
+            bag_lbls:
+                {key1: 0,
+                 key2: 1,
+                ... }
         """
         eeg = self.eeg_list[index]
         lbl = self.lbl_list[index]
         
         X = mne.io.read_raw_eeglab(eeg, preload=True)
+        chs = self.chn_list[index]
         X = X.get_data()  #time domain
-        #X = np.fft.fft(X, n=1024, axis=1) #Fourier transform, frequence domian
+        
+        #multiple instances
+        #bags = []
+        #for i in range(math.floor(X.shape[1]/512)-1):
+        #    bags.append(X[:, i*512:(i+1)*512])
+        #X = bags
+
+        X = np.fft.fft(X, n=512, axis=1) #Fourier transform, frequence domian
         
         #X_cA, X_cD = pywt.dwt(X, 'haar', mode='symmetric', axis=1) #wavelet transform, time-frequence domain
         #X = np.concatenate((X_cA, X_cD), axis=1)
 
-        X = torch.FloatTensor(X)#.unsqueeze(0)
+        X = torch.FloatTensor(X)#.permute(1,0,2)#.unsqueeze(0)
         y = torch.as_tensor(lbl, dtype=torch.long)
 
         return X, y
 
     def __len__(self):
         return len(self.eeg_list)
+    
+def collate_fn_def(batch):
+    return tuple(zip(*batch))
 
 def pad_tensor(vec, pad, dim):
     """
@@ -118,7 +139,7 @@ class PadCollate:
 def get_dataset(batch_size, shuffle, num_workers, dst_type='tr'):
     PATH_TO_DST_ROOT = '/data/pycode/MedIR/EEG/AD-FTD/dsts/'
     eeg_dataset = DatasetGenerator(path_to_ann_dir=PATH_TO_DST_ROOT + dst_type +'.csv', path_to_eeg_dir='/data/fjsdata/EEG/AD-FTD/')
-    #eeg_dataloader = DataLoader(dataset=eeg_dataset, collate_fn=PadCollate(dim=1), batch_size=batch_size,shuffle=shuffle, num_workers=num_workers, pin_memory=True)
+    #eeg_dataloader = DataLoader(dataset=eeg_dataset, collate_fn=collate_fn_def, batch_size=batch_size,shuffle=shuffle, num_workers=num_workers, pin_memory=True)
     eeg_dataloader = DataLoader(dataset=eeg_dataset, batch_size=batch_size,shuffle=shuffle, num_workers=num_workers, pin_memory=True)
     return eeg_dataloader
 
@@ -134,7 +155,7 @@ if __name__ == "__main__":
     #split datasets
     #split_inter_patients(test_rate=0.2)
     #for debug   
-    eeg_dst = get_dataset(batch_size=2, shuffle=True, num_workers=0, dst_type='te')
+    eeg_dst = get_dataset(batch_size=2, shuffle=True, num_workers=0, dst_type='tr')
     for idx, (eeg, lbl) in enumerate(eeg_dst):
         print(eeg.shape)
         print(lbl.shape)

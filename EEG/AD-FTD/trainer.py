@@ -25,6 +25,10 @@ def train_epoch(model, dataloader, loss_fn, optimizer, device):
     gt_lbl = torch.FloatTensor()
     model.train()
     for eegs, lbls in dataloader:
+
+        #eegs = eegs[0].unsqueeze(0)
+        #lbls = lbls[0].unsqueeze(0)
+
         var_eeg = eegs.to(device)
         var_lbl = lbls.to(device)
         optimizer.zero_grad()
@@ -50,6 +54,10 @@ def eval_epoch(model, dataloader, loss_fn, device):
     te_acc = 0.0
     model.eval()
     for eegs, lbls in dataloader:
+
+        #eegs = eegs[0].unsqueeze(0)
+        #lbls = lbls[0].unsqueeze(0)
+        
         var_eeg = eegs.to(device)
         var_lbl = lbls.to(device)
         var_out = model(var_eeg)
