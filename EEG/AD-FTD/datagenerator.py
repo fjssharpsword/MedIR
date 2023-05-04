@@ -24,22 +24,28 @@ class DatasetGenerator(Dataset):
             
         """
         ann_df = pd.read_csv(path_to_ann_dir, sep=',')
-      
         id_list = ann_df['participant_id'].tolist()
-        eeg_list, chn_list = [], []
         #com_chn = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2', 'F7', 'F8', 'T3', 'T4', 'T5', 'T6', 'Fz', 'Cz', 'Pz']
-        for id in id_list:
+        class_mapping = {'C':0, 'A':1, 'F':2}
+        lbl_id = ann_df['Group'].map(class_mapping).tolist()
+        eeg_list, lbl_list = [], []
+        for id, lbl in zip(id_list, lbl_id):
             eeg_path = path_to_eeg_dir + 'derivatives/' + id +'/eeg/' + id + '_task-eyesclosed_eeg.set'
             #eeg_path = path_to_eeg_dir + id +'/eeg/' + id + '_task-eyesclosed_eeg.set'
-            eeg_list.append(eeg_path)
-            chn_path = path_to_eeg_dir + id +'/eeg/' + id + '_task-eyesclosed_channels.tsv'
-            chn_df = pd.read_csv(chn_path, sep='\t')
-            chn_list.append(chn_df['name'].tolist())
+            #eeg_list.append(eeg_path)
+            #chn_path = path_to_eeg_dir + id +'/eeg/' + id + '_task-eyesclosed_channels.tsv'
+            #chn_df = pd.read_csv(chn_path, sep='\t')
+            #chn_list.append(chn_df['name'].tolist())
 
-        class_mapping = {'C':0, 'A':1, 'F':2}
-        self.lbl_list = ann_df['Group'].map(class_mapping).tolist()
+            raw = mne.io.read_raw_eeglab(eeg_path, preload=True)
+            events_from_annot, _ = mne.events_from_annotations(raw)
+            if len(events_from_annot) > 0:
+                bags = mne.Epochs(raw, events=events_from_annot, tmin=-0.2, tmax=0.8)
+                eeg_list.extend(bags.get_data())
+                lbl_list.extend([lbl]*bags.get_data().shape[0])
+            
+        self.lbl_list = lbl_list
         self.eeg_list = eeg_list
-        self.chn_list = chn_list
 
     def __getitem__(self, index):
         """
@@ -59,22 +65,20 @@ class DatasetGenerator(Dataset):
         eeg = self.eeg_list[index]
         lbl = self.lbl_list[index]
         
-        X = mne.io.read_raw_eeglab(eeg, preload=True)
-        chs = self.chn_list[index]
-        X = X.get_data()  #time domain
-        
         #multiple instances
+        #chs = self.chn_list[index]
+        #X = raw.get_data()  #time domain
         #bags = []
         #for i in range(math.floor(X.shape[1]/512)-1):
         #    bags.append(X[:, i*512:(i+1)*512])
         #X = bags
 
-        X = np.fft.fft(X, n=512, axis=1) #Fourier transform, frequence domian
+        #X = np.fft.fft(X, n=512, axis=1) #Fourier transform, frequence domian
         
         #X_cA, X_cD = pywt.dwt(X, 'haar', mode='symmetric', axis=1) #wavelet transform, time-frequence domain
         #X = np.concatenate((X_cA, X_cD), axis=1)
 
-        X = torch.FloatTensor(X)#.permute(1,0,2)#.unsqueeze(0)
+        X = torch.FloatTensor(eeg)  #.permute(1,0,2)#.unsqueeze(0)
         y = torch.as_tensor(lbl, dtype=torch.long)
 
         return X, y
@@ -140,7 +144,7 @@ def get_dataset(batch_size, shuffle, num_workers, dst_type='tr'):
     PATH_TO_DST_ROOT = '/data/pycode/MedIR/EEG/AD-FTD/dsts/'
     eeg_dataset = DatasetGenerator(path_to_ann_dir=PATH_TO_DST_ROOT + dst_type +'.csv', path_to_eeg_dir='/data/fjsdata/EEG/AD-FTD/')
     #eeg_dataloader = DataLoader(dataset=eeg_dataset, collate_fn=collate_fn_def, batch_size=batch_size,shuffle=shuffle, num_workers=num_workers, pin_memory=True)
-    eeg_dataloader = DataLoader(dataset=eeg_dataset, batch_size=batch_size,shuffle=shuffle, num_workers=num_workers, pin_memory=True)
+    eeg_dataloader = DataLoader(dataset=eeg_dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True)
     return eeg_dataloader
 
 def split_inter_patients(test_rate=0.2):
@@ -155,7 +159,7 @@ if __name__ == "__main__":
     #split datasets
     #split_inter_patients(test_rate=0.2)
     #for debug   
-    eeg_dst = get_dataset(batch_size=2, shuffle=True, num_workers=0, dst_type='tr')
+    eeg_dst = get_dataset(batch_size=8, shuffle=True, num_workers=0, dst_type='tr')
     for idx, (eeg, lbl) in enumerate(eeg_dst):
         print(eeg.shape)
         print(lbl.shape)
