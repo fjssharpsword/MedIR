@@ -11,7 +11,7 @@ from sklearn.decomposition import FastICA
 
 def main():
 
-    edf_file = '/data/fjsdata/EEG/JNU-SPSW/files1/00000002_s005_t000.edf'
+    edf_file = '/data/fjsdata/EEG/JNU-SPSW/files1/00000006_s004_t000.edf'
     raw = mne.io.read_raw_edf(edf_file, preload=True)
     sfreq = raw.info['sfreq']
     ch_names = raw.info['ch_names'] #electrodes
@@ -20,11 +20,16 @@ def main():
     #    raw.set_eeg_reference(ref_channels=['EEG CZ-REF'])
     #if 'EEG CZ-LE' in ch_names:
     #    raw.set_eeg_reference(ref_channels=['EEG CZ-LE'])
+    raw.filter(l_freq=1, h_freq=70) 
+    #raw.notch_filter(freqs=50)
+    if sfreq!=250:
+        raw.resample(250, npad="auto")
+        sfreq = 250
 
     #lbl_file = '/data/fjsdata/EEG/JNU-SPSW/files1/00013145_s004_t006.csv'
     #lbl_df = pd.read_csv(lbl_file, sep=',')
     # Using readlines()
-    lbl_file = open('/data/fjsdata/EEG/JNU-SPSW/files1/00000002_s005_t000.csv', 'r')
+    lbl_file = open('/data/fjsdata/EEG/JNU-SPSW/files1/00000006_s004_t000.csv', 'r')
     lbl_df = []
     for line in lbl_file.readlines()[4:]:
         lbl_df.append(line.replace('\n', '').replace('\r', '').replace(' ', '').split(","))
@@ -51,16 +56,16 @@ def main():
     #plot
     fig, axes = plt.subplots(1,2, constrained_layout=True,figsize=(12,6))
 
-    x = [id for id in range(1, len(spsw_span[0])+1)]
-    axes[0].plot(x, spsw_span[0],color = 'b')
-    axes[0].plot(100, spsw_span[0][100], marker='^', color='r')
-    axes[0].plot(len(spsw_span[0])-100, spsw_span[0][len(spsw_span[0])-100], marker='v', color='r')
+    x = [id for id in range(1, len(spsw_span[1])+1)]
+    axes[0].plot(x, spsw_span[1],color = 'b')
+    axes[0].plot(100, spsw_span[1][100], marker='^', color='r')
+    axes[0].plot(len(spsw_span[1])-100, spsw_span[1][len(spsw_span[1])-100], marker='v', color='r')
     axes[0].grid(b=True, ls=':')
 
-    x = [id for id in range(1, len(spsw_span[1])+1)]
-    axes[1].plot(x, spsw_span[1],color = 'b')
-    axes[1].plot(100, spsw_span[1][100], marker='^', color='r')
-    axes[1].plot(len(spsw_span[1])-100, spsw_span[1][len(spsw_span[1])-100], marker='v', color='r')
+    x = [id for id in range(1, len(spsw_span[2])+1)]
+    axes[1].plot(x, spsw_span[2],color = 'b')
+    axes[1].plot(100, spsw_span[2][100], marker='^', color='r')
+    axes[1].plot(len(spsw_span[2])-100, spsw_span[2][len(spsw_span[2])-100], marker='v', color='r')
     axes[1].grid(b=True, ls=':')
 
     fig.savefig('/data/pycode/MedIR/EEG/JNU-SPSW/imgs/eeg_spsw_seg.png', dpi=300, bbox_inches='tight')
