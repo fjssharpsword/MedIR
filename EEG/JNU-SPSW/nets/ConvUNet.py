@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class DiceLoss(nn.Module):
-    def __init__(self, smooth=1.0):
+    def __init__(self, smooth=1.0):#smooth=1e-5
         super(DiceLoss, self).__init__()
 
         self.smooth = smooth
@@ -104,10 +104,10 @@ class build_unet(nn.Module):
         outputs = self.sigmoid(outputs)
         return outputs
     
-#hhttps://medium.com/analytics-vidhya/unet-implementation-in-pytorch-idiot-developer-da40d955f201
+#https://medium.com/analytics-vidhya/unet-implementation-in-pytorch-idiot-developer-da40d955f201
 if __name__ == "__main__":
     device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
-    inputs = torch.randn((2, 1, 500)).to(device)
+    inputs = torch.randn((2, 1, 250)).to(device)
     model = build_unet().to(device)
     y = model(inputs)
     print(y.shape)

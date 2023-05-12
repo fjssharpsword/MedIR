@@ -7,21 +7,34 @@ import os
 import pickle 
 import matplotlib.pyplot as plt
 
-def dice_coef(y_true, y_pred):
+def dice_coef(input, target):
     smooth = 1
-    y_true_f = y_true.flatten()
-    y_pred_f = y_pred.flatten()
-    intersection = np.sum(y_true_f * y_pred_f)
-    return (2. * intersection + smooth) / (np.sum(y_true_f) + np.sum(y_pred_f) + smooth)
+
+    N = target.size(0)
+    input_flat = input.view(N, -1)
+    target_flat = target.view(N, -1)
+    
+    intersection = input_flat * target_flat
+    
+    coef = 2 * (intersection.sum(1) + smooth) / (input_flat.sum(1) + target_flat.sum(1) +smooth)
+    coef = coef.sum() / N
+    return coef
 
 class SPSWInstance:
-    def __init__(self, id, down_fq=250, seg_len=250*2):
+    def __init__(self, id, down_fq=250, seg_len=250*1):
 
         #parse edf and csv
         edf_path =  "/data/fjsdata/EEG/JNU-SPSW/files1/" + id + '.edf'
         ann_path =  "/data/fjsdata/EEG/JNU-SPSW/files1/" + id + '.csv'
         raw_np = mne.io.read_raw_edf(edf_path, preload=True)
-     
+
+        #reference lead
+        #ch_names = raw_np.info['ch_names'] #electrodes
+        #if 'EEG CZ-REF' in ch_names:
+        #    raw_np.set_eeg_reference(ref_channels=['EEG CZ-REF'])
+        #if 'EEG CZ-LE' in ch_names:
+        #    raw_np.set_eeg_reference(ref_channels=['EEG CZ-LE'])
+
         #filter
         raw_np.filter(l_freq=1, h_freq=70) 
         #raw_np.notch_filter(freqs=50)
@@ -42,6 +55,10 @@ class SPSWInstance:
         ch_names = raw_np.info['ch_names'] #electrodes
         eeg, lbl = [], []
         for key in ann_dict.keys(): 
+
+            #screening out specified channels
+            if key not in ['FP2-F8']: continue #['T6-O2']
+
             bi_ch = key.split("-", 1) #two electrodes
             F_idx, S_idx = -1, -1
             for i, ele in enumerate(ch_names):
@@ -97,7 +114,7 @@ class SPSWInstance:
 
         return ann_dict
     
-def build_dataset():
+def build_dataset(down_fq, seg_len):
     dir = "/data/fjsdata/EEG/JNU-SPSW/files1/"
     ids = []
     for _, _, files in os.walk(dir):
@@ -108,20 +125,32 @@ def build_dataset():
 
     eegs, lbls = [], []
     for id in ids:
-        spsw = SPSWInstance(id)
+        spsw = SPSWInstance(id, down_fq, seg_len)
         eegs.extend(spsw.eeg)
         lbls.extend(spsw.lbl)
 
     return np.array(eegs), np.array(lbls)
 
 def main():
-    eegs, lbls = build_dataset()
+    eegs, lbls = build_dataset(down_fq=250, seg_len=256)
     print(eegs.shape)
     print(lbls.shape)
+    #plot labeling effects
+    fig, axes = plt.subplots(1,2, constrained_layout=True,figsize=(12,6))
+    for i in range(2):   
+        eeg, lbl = eegs[i], lbls[i]
+        x = [id for id in range(1, len(lbl)+1)]
+        axes[i].plot(x, eeg, color = 'g')
+        segs = np.where(np.diff(lbl != 0))[0] + 1
+        axes[i].plot(segs[0], eeg[segs[0]], marker='^', color='r')
+        axes[i].plot(segs[1], eeg[segs[1]], marker='v', color='r')
+        axes[i].grid(b=True, ls=':')
+
+    fig.savefig('/data/pycode/MedIR/EEG/JNU-SPSW/imgs/eeg_segs.png', dpi=300, bbox_inches='tight') 
 
 if __name__ == "__main__":
     main()
-    #nohup python3 spsw_retrieval.py > /data/tmpexec/tb_log/spsw_retrieval.log 2>&1 &
+    #nohup python3 Generator.py > /data/tmpexec/tb_log/Generator.log 2>&1 &
 
     
             
