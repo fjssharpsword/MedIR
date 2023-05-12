@@ -16,7 +16,6 @@ from tensorboardX import SummaryWriter
 #self-defined
 from nets.ConvUNet import build_unet, DiceLoss
 from dsts.Generator import build_dataset, dice_coef
-from nets.TransUNet import SETRModel
 
 def train_epoch(model, dataloader, loss_fn, optimizer, device):
     tr_loss = []
@@ -83,9 +82,7 @@ def Train_Eval():
         te_dataloader = DataLoader(dataset, batch_size = 512, sampler=te_sampler)
 
         #model 
-        #model = build_unet(in_ch=1, n_clases=1).to(device)  #unet
-        model = SETRModel(in_channels=1, out_channels=1).to(device)
-
+        model = build_unet(in_ch=1, n_classes=1).to(device)  #unet
         optimizer_model = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=1e-4)
         lr_scheduler_model = lr_scheduler.StepLR(optimizer_model , step_size = 10, gamma = 1)
         criterion = DiceLoss() #nn.CrossEntropyLoss() 

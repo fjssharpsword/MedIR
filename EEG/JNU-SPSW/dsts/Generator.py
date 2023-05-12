@@ -132,7 +132,7 @@ def build_dataset(down_fq, seg_len):
     return np.array(eegs), np.array(lbls)
 
 def main():
-    eegs, lbls = build_dataset(down_fq=250, seg_len=256)
+    eegs, lbls = build_dataset(down_fq=250, seg_len=250)
     print(eegs.shape)
     print(lbls.shape)
     #plot labeling effects

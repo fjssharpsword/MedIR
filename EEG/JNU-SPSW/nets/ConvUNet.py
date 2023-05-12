@@ -68,7 +68,7 @@ class decoder_block(nn.Module):
         return x
     
 class build_unet(nn.Module):
-    def __init__(self, in_ch =1, n_clases=1):
+    def __init__(self, in_ch =1, n_classes=1):
         super().__init__()
         """ Encoder """
         self.e1 = encoder_block(in_ch, 16)
@@ -83,15 +83,20 @@ class build_unet(nn.Module):
         self.d3 = decoder_block(64, 32)
         self.d4 = decoder_block(32, 16)
         """ Classifier """
-        self.outputs = nn.Conv1d(16, n_clases, kernel_size=1, padding=0)
+        self.outputs = nn.Conv1d(16, n_classes, kernel_size=1, padding=0)
         self.sigmoid = nn.Sigmoid()
+        #self.dropout = nn.Dropout(p=0.2) 
 
     def forward(self, inputs):
         """ Encoder """
         s1, p1 = self.e1(inputs)
+        #p1 = self.dropout(p1)
         s2, p2 = self.e2(p1)
+        #p2 = self.dropout(p2)
         s3, p3 = self.e3(p2)
+        #p3 = self.dropout(p3)
         s4, p4 = self.e4(p3)
+        #p4 = self.dropout(p4)
         """ Bottleneck """
         b = self.b(p4)
         """ Decoder """
