@@ -16,6 +16,7 @@ from tensorboardX import SummaryWriter
 #self-defined
 from nets.ConvUNet import build_unet, DiceLoss
 from dsts.Generator import build_dataset, dice_coef
+from nets.LSTMUNet import LSTMSeg
 
 def train_epoch(model, dataloader, loss_fn, optimizer, device):
     tr_loss = []
@@ -76,13 +77,15 @@ def Train_Eval():
     for f_id, (tr_idx, te_idx) in enumerate(kf_set):
         print('\r Fold {} train and validation.'.format(f_id + 1))
         #dataset
-        tr_sampler = SubsetRandomSampler(tr_idx)
         te_sampler = SubsetRandomSampler(te_idx)
-        tr_dataloader = DataLoader(dataset, batch_size = 512, sampler=tr_sampler) 
         te_dataloader = DataLoader(dataset, batch_size = 512, sampler=te_sampler)
-
+        tr_sampler = SubsetRandomSampler(tr_idx)
+        tr_dataloader = DataLoader(dataset, batch_size = 512, sampler=tr_sampler)
+        
         #model 
-        model = build_unet(in_ch=1, n_classes=1).to(device)  #unet
+        #model = build_unet(in_ch=1, n_classes=1).to(device)  #conv-unet
+        model = LSTMSeg(num_electrodes = 1, hid_channels=64, num_classes=1).to(device) #conv-unet
+        
         optimizer_model = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=1e-4)
         lr_scheduler_model = lr_scheduler.StepLR(optimizer_model , step_size = 10, gamma = 1)
         criterion = DiceLoss() #nn.CrossEntropyLoss() 
