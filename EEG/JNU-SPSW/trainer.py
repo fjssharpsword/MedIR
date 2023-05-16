@@ -14,8 +14,10 @@ from sklearn.metrics import confusion_matrix
 import pywt
 from tensorboardX import SummaryWriter
 #self-defined
-from nets.ConvUNet import build_unet, DiceLoss
-from dsts.Generator import build_dataset, dice_coef
+from dsts.generator import build_dataset, dice_coef
+#from nets.vanilla_unet import build_unet, DiceLoss
+from nets.attention_unet import build_unet, DiceLoss
+#from nets.cdconv_unet import build_unet, DiceLoss
 
 def train_epoch(model, dataloader, loss_fn, optimizer, device):
     tr_loss = []
@@ -66,8 +68,8 @@ def Train_Eval():
 
     #X = np.fft.fft(X, axis=1) #Fourier transform, frequence domain
 
-    #X_cA, X_cD = pywt.dwt(X, 'haar', mode='symmetric', axis=1) #wavelet transform, time-frequence domain
-    #X = np.concatenate((X_cA, X_cD), axis=1)
+    X_cA, X_cD = pywt.dwt(X, 'haar', mode='symmetric', axis=1) #wavelet transform, time-frequence domain
+    X = np.concatenate((X_cA, X_cD), axis=1)
 
     print('\r Sample number: {}'.format(len(y)))
     dataset = TensorDataset(torch.FloatTensor(X).unsqueeze(1), torch.LongTensor(y))
