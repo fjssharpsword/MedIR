@@ -113,6 +113,6 @@ class build_unet(nn.Module):
 if __name__ == "__main__":
     device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
     inputs = torch.randn((2, 1, 250)).to(device)
-    model = build_unet().to(device)
+    model = build_unet(n_classes=1).to(device)
     y = model(inputs)
     print(y.shape)

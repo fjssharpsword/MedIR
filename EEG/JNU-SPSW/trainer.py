@@ -16,7 +16,6 @@ from tensorboardX import SummaryWriter
 #self-defined
 from nets.ConvUNet import build_unet, DiceLoss
 from dsts.Generator import build_dataset, dice_coef
-from nets.LSTMUNet import LSTMSeg
 
 def train_epoch(model, dataloader, loss_fn, optimizer, device):
     tr_loss = []
@@ -47,7 +46,8 @@ def eval_epoch(model, dataloader, loss_fn, device):
         te_loss.append(loss.item())
 
         gt_lbl = torch.cat((gt_lbl, lbls), 0)
-        var_out = torch.where(var_out>0.5, 1, 0)
+        var_out = torch.where(var_out>0.5, 1, 0) #for dice loss
+        #_, var_out = torch.max(var_out.data, 1) #for CE loss
         pr_lbl = torch.cat((pr_lbl, var_out.cpu()), 0)
 
     te_loss = np.mean(te_loss)
@@ -83,12 +83,10 @@ def Train_Eval():
         tr_dataloader = DataLoader(dataset, batch_size = 512, sampler=tr_sampler)
         
         #model 
-        #model = build_unet(in_ch=1, n_classes=1).to(device)  #conv-unet
-        model = LSTMSeg(num_electrodes = 1, hid_channels=64, num_classes=1).to(device) #conv-unet
-        
+        model = build_unet(in_ch=1, n_classes=1).to(device)  #conv-unet
         optimizer_model = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=1e-4)
         lr_scheduler_model = lr_scheduler.StepLR(optimizer_model , step_size = 10, gamma = 1)
-        criterion = DiceLoss() #nn.CrossEntropyLoss() 
+        criterion = DiceLoss()   #nn.CrossEntropyLoss()
         #cross-validation
         best_dice = 0.0
         for epoch in range(100):
