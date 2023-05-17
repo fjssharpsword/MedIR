@@ -16,8 +16,9 @@ from tensorboardX import SummaryWriter
 #self-defined
 from dsts.generator import build_dataset, dice_coef
 #from nets.vanilla_unet import build_unet, DiceLoss
-from nets.attention_unet import build_unet, DiceLoss
+#from nets.attention_unet import build_unet, DiceLoss
 #from nets.cdconv_unet import build_unet, DiceLoss
+from nets.weight_unet import build_unet, DiceLoss
 
 def train_epoch(model, dataloader, loss_fn, optimizer, device):
     tr_loss = []
@@ -54,6 +55,14 @@ def eval_epoch(model, dataloader, loss_fn, device):
 
     te_loss = np.mean(te_loss)
     te_coef = dice_coef(gt_lbl, pr_lbl)
+
+    pr_lbl = torch.flatten(pr_lbl)
+    gt_lbl = torch.flatten(gt_lbl)
+    te_acc = (pr_lbl == gt_lbl).sum()/len(gt_lbl)
+    tn, fp, fn, tp = confusion_matrix(gt_lbl.numpy(), pr_lbl.numpy()).ravel()
+    te_sen = tp /(tp+fn)
+    te_spe = tn /(tn+fp)
+    print('\n Evaluation: Accuracy={:.4f}, Sensitivity={:.4f}, Specificity={:.4f}'.format(te_acc, te_sen, te_spe))
 
     return te_coef
 
@@ -114,4 +123,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    #nohup python3 -u trainer.py >> /data/tmpexec/tb_log/trainer.log 2>&1 &
+    #nohup python3 -u trainer.py >> /data/tmpexec/tb_log/trainer_TF.log 2>&1 &

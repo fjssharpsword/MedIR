@@ -67,40 +67,8 @@ class decoder_block(nn.Module):
         x = self.conv(x)
         return x
 
-class Channel_layer(nn.Module):
-    def __init__(self, channel, reduction=2):
-        super(Channel_layer, self).__init__()
-        self.avg_pool = nn.AdaptiveAvgPool1d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(channel, channel // reduction, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(channel // reduction, channel, bias=False),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        b, c, _, = x.size()
-        y = self.avg_pool(x).view(b, c)
-        y = self.fc(y).view(b, c, 1)
-        return x * y.expand_as(x)
-    
-class Spatial_layer(nn.Module):#spatial attention layer
-    def __init__(self):
-        super(Spatial_layer, self).__init__()
-
-        self.conv1 = nn.Conv1d(2, 1, kernel_size=3, padding=1, bias=False)
-        self.sigmoid = nn.Sigmoid()
-        
-    def forward(self, x):
-        identity = x
-        avg_out = torch.mean(x, dim=1, keepdim=True)
-        max_out, _ = torch.max(x, dim=1, keepdim=True)
-        x = torch.cat([avg_out, max_out], dim=1)
-        x = self.conv1(x)
-        return self.sigmoid(x)*identity
-    
 class SelfAttention_layer(nn.Module): 
-    def __init__(self, in_ch, k=2):
+    def __init__(self, in_ch=1, k=1):
         super(SelfAttention_layer, self).__init__()
 
         self.in_ch = in_ch
@@ -161,19 +129,15 @@ def constant_init(module):
         nn.init.constant_(module.bias.data, 0.0)
     elif isinstance(module, nn.BatchNorm2d):
         pass
-    
+
 class build_unet(nn.Module):
     def __init__(self, in_ch =1, n_classes=1):
         super().__init__()
         """ Encoder """
         self.e1 = encoder_block(in_ch, 16)
-        self.att1 = SelfAttention_layer(in_ch=16) #Spatial_layer() #Channel_layer(channel=16)
         self.e2 = encoder_block(16, 32)
-        self.att2 = SelfAttention_layer(in_ch=32) #Spatial_layer() #Channel_layer(channel=32)
         self.e3 = encoder_block(32, 64)
-        self.att3 = SelfAttention_layer(in_ch=64) #Spatial_layer() #Channel_layer(channel=64)
         self.e4 = encoder_block(64, 128)
-        self.att4 = SelfAttention_layer(in_ch=128) #Spatial_layer() #Channel_layer(channel=128)
         """ Bottleneck """
         self.b = conv_block(128, 256)
         """ Decoder """
@@ -184,17 +148,23 @@ class build_unet(nn.Module):
         """ Classifier """
         self.outputs = nn.Conv1d(16, n_classes, kernel_size=1, padding=0)
         self.sigmoid = nn.Sigmoid()
+        self.dropout = nn.Dropout(p=0.2) 
+
+        self.weight_layer = SelfAttention_layer()
 
     def forward(self, inputs):
+
+        inputs = self.weight_layer(inputs)
+        
         """ Encoder """
         s1, p1 = self.e1(inputs)
-        p1 = self.att1(p1)
+        p1 = self.dropout(p1)
         s2, p2 = self.e2(p1)
-        p2 = self.att2(p2)
+        p2 = self.dropout(p2)
         s3, p3 = self.e3(p2)
-        p3 = self.att3(p3)
+        p3 = self.dropout(p3)
         s4, p4 = self.e4(p3)
-        p4 = self.att4(p4)
+        p4 = self.dropout(p4)
         """ Bottleneck """
         b = self.b(p4)
         """ Decoder """
@@ -210,7 +180,7 @@ class build_unet(nn.Module):
 #https://medium.com/analytics-vidhya/unet-implementation-in-pytorch-idiot-developer-da40d955f201
 if __name__ == "__main__":
     device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
-    inputs = torch.randn(8, 1, 250).to(device)
+    inputs = torch.randn((2, 1, 250)).to(device)
     model = build_unet(n_classes=1).to(device)
     y = model(inputs)
     print(y.shape)
