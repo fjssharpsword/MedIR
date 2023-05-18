@@ -6,19 +6,11 @@ import random
 import os
 import pickle 
 import matplotlib.pyplot as plt
+import torch
+import torch.nn as nn
+from nets.sa_unet import build_unet, DiceLoss
+#from nets.utime import build_unet, DiceLoss
 
-def dice_coef(input, target):
-    smooth = 1
-
-    N = target.size(0)
-    input_flat = input.view(N, -1)
-    target_flat = target.view(N, -1)
-    
-    intersection = input_flat * target_flat
-    
-    coef = 2 * (intersection.sum(1) + smooth) / (input_flat.sum(1) + target_flat.sum(1) +smooth)
-    coef = coef.sum() / N
-    return coef
 
 class SPSWInstance:
     def __init__(self, id, down_fq=250, seg_len=250*1):
@@ -57,7 +49,7 @@ class SPSWInstance:
         for key in ann_dict.keys(): 
 
             #screening out specified channels
-            #if key not in ['T6-O2']: continue #['FP2-F8']
+            if key not in ['T6-O2']: continue #['FP2-F8']
 
             bi_ch = key.split("-", 1) #two electrodes
             F_idx, S_idx = -1, -1
@@ -132,25 +124,49 @@ def build_dataset(down_fq, seg_len):
     return np.array(eegs), np.array(lbls)
 
 def main():
+
+    #processing dataset
     eegs, lbls = build_dataset(down_fq=250, seg_len=250)
+    print('\r Dataset scale')
     print(eegs.shape)
     print(lbls.shape)
+
+    #loading model
+    CKPT_PATH = '/data/pycode/MedIR/EEG/JNU-SPSW/ckpts/unet_t_T6-O2.pkl'
+    device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
+    model = build_unet(in_ch=1, n_classes=1).to(device)
+    if os.path.exists(CKPT_PATH):
+        checkpoint = torch.load(CKPT_PATH)
+        model.load_state_dict(checkpoint) #strict=False
+        print("=> Loaded well-trained model: "+CKPT_PATH)
+    model.eval()#turn to evaluation mode
+
     #plot labeling effects
     fig, axes = plt.subplots(1,2, constrained_layout=True,figsize=(12,6))
+    idx = random.randint(0, len(lbls)-1)
     for i in range(2):   
-        eeg, lbl = eegs[i], lbls[i]
-        x = [id for id in range(1, len(lbl)+1)]
-        axes[i].plot(x, eeg, color = 'g')
-        segs = np.where(np.diff(lbl != 0))[0] + 1
-        axes[i].plot(segs[0], eeg[segs[0]], marker='^', color='r')
-        axes[i].plot(segs[1], eeg[segs[1]], marker='v', color='r')
+        eeg, gt_lbl = eegs[idx+i], lbls[idx+i]
+        #prediction
+        X = torch.FloatTensor(eeg).unsqueeze(0).unsqueeze(0)
+        pd_lbl = model(X.to(device))
+        pd_lbl = torch.where(torch.flatten(pd_lbl)>0.5, 1, 0)
+        pd_lbl = pd_lbl.cpu().numpy()
+        #show
+        pt = [id for id in range(1, len(gt_lbl)+1)]
+        axes[i].plot(pt, eeg, color = 'g')
+        for j in range(len(gt_lbl)):
+            if int(gt_lbl[j]) == 1: 
+                axes[i].scatter(pt[j], eeg[j], color='b')
+        for j in range(len(pd_lbl)):
+            if int(pd_lbl[j]) == 1: 
+                axes[i].scatter(pt[j], eeg[j], color='r')
         axes[i].grid(b=True, ls=':')
 
-    fig.savefig('/data/pycode/MedIR/EEG/JNU-SPSW/imgs/eeg_segs.png', dpi=300, bbox_inches='tight') 
+    fig.savefig('/data/pycode/MedIR/EEG/JNU-SPSW/imgs/eeg_gt_pred.png', dpi=300, bbox_inches='tight') 
 
 if __name__ == "__main__":
     main()
-    #nohup python3 Generator.py > /data/tmpexec/tb_log/Generator.log 2>&1 &
+    #nohup python3 plotter.py > /data/tmpexec/tb_log/plotter.log 2>&1 &
 
     
             

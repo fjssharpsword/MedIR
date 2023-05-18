@@ -130,6 +130,21 @@ def constant_init(module):
     elif isinstance(module, nn.BatchNorm2d):
         pass
 
+class Spatial_layer(nn.Module):#spatial attention layer
+    def __init__(self):
+        super(Spatial_layer, self).__init__()
+
+        self.conv1 = nn.Conv1d(2, 1, kernel_size=3, padding=1, bias=False)
+        self.sigmoid = nn.Sigmoid()
+        
+    def forward(self, x):
+        identity = x
+        avg_out = torch.mean(x, dim=1, keepdim=True)
+        max_out, _ = torch.max(x, dim=1, keepdim=True)
+        x = torch.cat([avg_out, max_out], dim=1)
+        x = self.conv1(x)
+        return self.sigmoid(x)*identity
+
 class build_unet(nn.Module):
     def __init__(self, in_ch =1, n_classes=1):
         super().__init__()
@@ -148,30 +163,41 @@ class build_unet(nn.Module):
         """ Classifier """
         self.outputs = nn.Conv1d(16, n_classes, kernel_size=1, padding=0)
         self.sigmoid = nn.Sigmoid()
-        self.dropout = nn.Dropout(p=0.2) 
+        self.dropout = nn.Dropout(p=0.1) 
 
-        self.weight_layer = SelfAttention_layer()
+        self.global_sa = SelfAttention_layer()
+        self.local_sa = Spatial_layer()
 
     def forward(self, inputs):
 
-        inputs = self.weight_layer(inputs)
+        inputs = self.global_sa(inputs)
         
         """ Encoder """
         s1, p1 = self.e1(inputs)
+        p1 = self.local_sa(p1)
         p1 = self.dropout(p1)
+
         s2, p2 = self.e2(p1)
+        p2 = self.local_sa(p2)
         p2 = self.dropout(p2)
+
         s3, p3 = self.e3(p2)
+        p3 = self.local_sa(p3)
         p3 = self.dropout(p3)
+
         s4, p4 = self.e4(p3)
+        p4 = self.local_sa(p4)
         p4 = self.dropout(p4)
+
         """ Bottleneck """
         b = self.b(p4)
+
         """ Decoder """
         d1 = self.d1(b, s4)
         d2 = self.d2(d1, s3)
         d3 = self.d3(d2, s2)
         d4 = self.d4(d3, s1)
+        
         """ Classifier """
         outputs = self.outputs(d4)
         outputs = self.sigmoid(outputs)

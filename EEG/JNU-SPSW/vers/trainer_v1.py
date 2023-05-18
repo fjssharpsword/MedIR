@@ -18,8 +18,8 @@ from dsts.generator import build_dataset, dice_coef
 #from nets.vanilla_unet import build_unet, DiceLoss
 #from nets.attention_unet import build_unet, DiceLoss
 #from nets.cdconv_unet import build_unet, DiceLoss
-#from nets.sa_unet import build_unet, DiceLoss
-from nets.utime import build_unet, DiceLoss
+#from nets.weight_unet import build_unet, DiceLoss
+from nets.nips2019_utime import build_unet, DiceLoss
 
 def train_epoch(model, dataloader, loss_fn, optimizer, device):
     tr_loss = []
@@ -56,7 +56,7 @@ def eval_epoch(model, dataloader, loss_fn, device):
 
     te_loss = np.mean(te_loss)
     te_coef = dice_coef(gt_lbl, pr_lbl)
-
+    
     #other metrics
     pr_lbl = torch.flatten(pr_lbl)
     gt_lbl = torch.flatten(gt_lbl)
@@ -64,16 +64,16 @@ def eval_epoch(model, dataloader, loss_fn, device):
     tn, fp, fn, tp = confusion_matrix(gt_lbl.numpy(), pr_lbl.numpy()).ravel()
     te_sen = tp /(tp+fn)
     te_spe = tn /(tn+fp)
-    #print('\n Evaluation: Accuracy={:.4f}, Sensitivity={:.4f}, Specificity={:.4f}'.format(te_acc, te_sen, te_spe))
-    #sk_f1 = f1_score(gt_lbl.numpy(), pr_lbl.numpy())
-    te_f1 = 2*(te_sen*te_spe)/(te_sen+te_spe)
-    #print('\n Evaluation: SK_F1={:.4f}, CM_F1={:.4f}'.format(sk_f1, cm_f1))
+    print('\n Evaluation: Accuracy={:.4f}, Sensitivity={:.4f}, Specificity={:.4f}'.format(te_acc, te_sen, te_spe))
+    sk_f1 = f1_score(gt_lbl.numpy(), pr_lbl.numpy())
+    cm_f1 = 2*(te_sen*te_spe)/(te_sen+te_spe)
+    print('\n Evaluation: SK_F1={:.4f}, CM_F1={:.4f}'.format(sk_f1, cm_f1))
 
-    return te_coef, te_acc, te_f1
+    return te_coef
 
 def Train_Eval():
 
-    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
     torch.backends.cudnn.benchmark = True  # improve train speed slightly
     #log_writer = SummaryWriter('/data/tmpexec/tb_log')
     
@@ -89,7 +89,7 @@ def Train_Eval():
     dataset = TensorDataset(torch.FloatTensor(X).unsqueeze(1), torch.LongTensor(y))
     kf_set = KFold(n_splits=10, shuffle=True).split(X, y)
 
-    dice_list, acc_list, f1_list = [], [], []
+    dice_list = []
     for f_id, (tr_idx, te_idx) in enumerate(kf_set):
         print('\r Fold {} train and validation.'.format(f_id + 1))
         #dataset
@@ -104,39 +104,28 @@ def Train_Eval():
         lr_scheduler_model = lr_scheduler.StepLR(optimizer_model , step_size = 10, gamma = 1)
         criterion = DiceLoss()   #nn.CrossEntropyLoss()
         #cross-validation
-        best_dice, best_acc, best_f1 = 0.0, 0.0, 0.0
+        best_dice = 0.0
         for epoch in range(100):
             tr_loss = train_epoch(model, tr_dataloader, criterion, optimizer_model, device)
             lr_scheduler_model.step()  #about lr and gamma
-            te_coef, te_acc, te_f1 = eval_epoch(model, te_dataloader, criterion, device)
+            te_coef = eval_epoch(model, te_dataloader, criterion, device)
 
             #log_writer.add_scalars('EEG/CHB-MIT/Loss', {'Train':tr_loss, 'Test':te_loss}, epoch+1)
             print('\r Train Epoch_{}: DiceLoss={:.4f}'.format(epoch+1, tr_loss))
-            print('\r Validation Epoch_{}: DiceCoef={:.4f}, Accuracy={:.4f}, F1 Score={:.4f}'.format(epoch+1, te_coef, te_acc, te_f1))
+            print('\r Validation Epoch_{}: DiceCoef={:.4f}'.format(epoch+1, te_coef))
 
             if best_dice < te_coef:
                 best_dice = te_coef
-                best_acc = te_acc
-                best_f1 = te_f1
-                if len(dice_list) == 0 or (len(dice_list) > 0 and best_dice > np.max(dice_list)):
-                    torch.save(model.state_dict(), '/data/pycode/MedIR/EEG/JNU-SPSW/ckpts/utime_t.pkl')
-                    print(' Epoch: {} model has been already save!'.format(epoch+1))
-       
-        dice_list.append(best_dice)
-        acc_list.append(best_acc)
-        f1_list.append(best_f1)
-        print('\r Fold_{}: DiceCoef={:.2f}, Accuracy={:.2f}, F1 Score={:.2f}'.format(f_id + 1, best_dice*100, best_acc*100, best_f1*100))
 
-    print('\r Maximum performance: DiceCoef={:.2f}, Accuracy={:.2f}, F1 Score={:.2f}'.format(np.max(dice_list)*100, np.max(acc_list)*100, np.max(f1_list)*100))
-    print('\r Average performance: DiceCoef={:.2f}+/-{:.2f}, \
-                                   Accuracy={:.2f}+/-{:.2f}, \
-                                   F1 Score={:.2f}+/-{:.2f}'.format(np.mean(dice_list)*100, np.std(dice_list)*100,\
-                                                                    np.mean(acc_list)*100, np.std(acc_list)*100,\
-                                                                    np.mean(f1_list)*100, np.std(f1_list)*100))
+        dice_list.append(best_dice)
+        print('\r Fold_{}: DiceCoef={:.2f}'.format(f_id + 1, best_dice*100))
+
+    print('\r Maximum performance: DiceCoef={:.2f}'.format(np.max(dice_list)*100))
+    print('\r Average performance: DiceCoef={:.2f}+/-{:.2f}'.format(np.mean(dice_list)*100, np.std(dice_list)*100))
 
 def main():
     Train_Eval()
 
 if __name__ == "__main__":
     main()
-    #nohup python3 -u trainer.py >> /data/tmpexec/tb_log/utime_t.log 2>&1 &
+    #nohup python3 -u trainer.py >> /data/tmpexec/tb_log/trainer_TF.log 2>&1 &
