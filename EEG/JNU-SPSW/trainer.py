@@ -18,8 +18,8 @@ from dsts.generator import build_dataset, dice_coef
 #from nets.vanilla_unet import build_unet, DiceLoss
 #from nets.attention_unet import build_unet, DiceLoss
 #from nets.cdconv_unet import build_unet, DiceLoss
-#from nets.sa_unet import build_unet, DiceLoss
-from nets.utime import build_unet, DiceLoss
+from nets.sa_unet import build_unet, DiceLoss
+#from nets.utime import build_unet, DiceLoss
 
 def train_epoch(model, dataloader, loss_fn, optimizer, device):
     tr_loss = []
@@ -73,7 +73,7 @@ def eval_epoch(model, dataloader, loss_fn, device):
 
 def Train_Eval():
 
-    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
     torch.backends.cudnn.benchmark = True  # improve train speed slightly
     #log_writer = SummaryWriter('/data/tmpexec/tb_log')
     
@@ -119,7 +119,7 @@ def Train_Eval():
                 best_acc = te_acc
                 best_f1 = te_f1
                 if len(dice_list) == 0 or (len(dice_list) > 0 and best_dice > np.max(dice_list)):
-                    torch.save(model.state_dict(), '/data/pycode/MedIR/EEG/JNU-SPSW/ckpts/utime_t.pkl')
+                    torch.save(model.state_dict(), '/data/pycode/MedIR/EEG/JNU-SPSW/ckpts/sa_unet_t.pkl')
                     print(' Epoch: {} model has been already save!'.format(epoch+1))
        
         dice_list.append(best_dice)
@@ -139,4 +139,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    #nohup python3 -u trainer.py >> /data/tmpexec/tb_log/utime_t.log 2>&1 &
+    #nohup python3 -u trainer.py >> /data/tmpexec/tb_log/sa_unet_t.log 2>&1 &

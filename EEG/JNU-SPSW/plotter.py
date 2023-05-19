@@ -11,6 +11,12 @@ import torch.nn as nn
 from nets.sa_unet import build_unet, DiceLoss
 #from nets.utime import build_unet, DiceLoss
 
+def dice_coef(y_true, y_pred):
+    smooth = 1
+    y_true_f = y_true.flatten()
+    y_pred_f = y_pred.flatten()
+    intersection = np.sum(y_true_f * y_pred_f)
+    return (2. * intersection + smooth) / (np.sum(y_true_f) + np.sum(y_pred_f) + smooth)
 
 class SPSWInstance:
     def __init__(self, id, down_fq=250, seg_len=250*1):
@@ -143,26 +149,31 @@ def main():
 
     #plot labeling effects
     fig, axes = plt.subplots(1,2, constrained_layout=True,figsize=(12,6))
-    idx = random.randint(0, len(lbls)-1)
-    for i in range(2):   
-        eeg, gt_lbl = eegs[idx+i], lbls[idx+i]
+    ax_idx = 0
+
+    for i in range(len(lbls)):
+        if ax_idx > 1: break   
+
+        eeg, gt_lbl = eegs[i], lbls[i]
         #prediction
         X = torch.FloatTensor(eeg).unsqueeze(0).unsqueeze(0)
         pd_lbl = model(X.to(device))
         pd_lbl = torch.where(torch.flatten(pd_lbl)>0.5, 1, 0)
         pd_lbl = pd_lbl.cpu().numpy()
         #show
-        pt = [id for id in range(1, len(gt_lbl)+1)]
-        axes[i].plot(pt, eeg, color = 'g')
-        for j in range(len(gt_lbl)):
-            if int(gt_lbl[j]) == 1: 
-                axes[i].scatter(pt[j], eeg[j], color='b')
-        for j in range(len(pd_lbl)):
-            if int(pd_lbl[j]) == 1: 
-                axes[i].scatter(pt[j], eeg[j], color='r')
-        axes[i].grid(b=True, ls=':')
+        if dice_coef(pd_lbl, gt_lbl) > 0.95:
+            pt = [id for id in range(1, len(gt_lbl)+1)]
+            axes[ax_idx].plot(pt, eeg, color = 'g')
+            for j in range(len(gt_lbl)):
+                if int(gt_lbl[j]) == 1: 
+                    axes[ax_idx].scatter(pt[j], eeg[j], color='b', marker='v', alpha=0.5)
+            for j in range(len(pd_lbl)):
+                if int(pd_lbl[j]) == 1: 
+                    axes[ax_idx].scatter(pt[j], eeg[j], color='r', marker='^', alpha=0.5)
+            axes[ax_idx].grid(b=True, ls=':')
+            ax_idx = ax_idx+1
 
-    fig.savefig('/data/pycode/MedIR/EEG/JNU-SPSW/imgs/eeg_gt_pred.png', dpi=300, bbox_inches='tight') 
+    fig.savefig('/data/pycode/MedIR/EEG/JNU-SPSW/imgs/eeg_gt_pred_2.png', dpi=300, bbox_inches='tight') 
 
 if __name__ == "__main__":
     main()

@@ -163,31 +163,30 @@ class build_unet(nn.Module):
         """ Classifier """
         self.outputs = nn.Conv1d(16, n_classes, kernel_size=1, padding=0)
         self.sigmoid = nn.Sigmoid()
-        self.dropout = nn.Dropout(p=0.1) 
 
-        self.global_sa = SelfAttention_layer()
-        self.local_sa = Spatial_layer()
+        #self.dropout = nn.Dropout(p=0.1) 
+        #self.global_sa = SelfAttention_layer()
+        #self.local_sa = Spatial_layer()
 
     def forward(self, inputs):
-
-        inputs = self.global_sa(inputs)
-        
+        #inputs = self.global_sa(inputs)
+        inputs = inputs - inputs.mean(dim=2).unsqueeze(1)
         """ Encoder """
         s1, p1 = self.e1(inputs)
-        p1 = self.local_sa(p1)
-        p1 = self.dropout(p1)
+        #p1 = self.local_sa(p1)
+        #p1 = self.dropout(p1)
 
         s2, p2 = self.e2(p1)
-        p2 = self.local_sa(p2)
-        p2 = self.dropout(p2)
+        #p2 = self.local_sa(p2)
+        #p2 = self.dropout(p2)
 
         s3, p3 = self.e3(p2)
-        p3 = self.local_sa(p3)
-        p3 = self.dropout(p3)
+        #p3 = self.local_sa(p3)
+        #p3 = self.dropout(p3)
 
         s4, p4 = self.e4(p3)
-        p4 = self.local_sa(p4)
-        p4 = self.dropout(p4)
+        #p4 = self.local_sa(p4)
+        #p4 = self.dropout(p4)
 
         """ Bottleneck """
         b = self.b(p4)
@@ -206,7 +205,7 @@ class build_unet(nn.Module):
 #https://medium.com/analytics-vidhya/unet-implementation-in-pytorch-idiot-developer-da40d955f201
 if __name__ == "__main__":
     device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
-    inputs = torch.randn((2, 1, 250)).to(device)
+    inputs = torch.randn((8, 1, 250)).to(device)
     model = build_unet(n_classes=1).to(device)
     y = model(inputs)
     print(y.shape)

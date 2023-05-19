@@ -99,7 +99,7 @@ class Encoder(nn.Module):
                 kernel_size=self.kernel_size
             ),
         )
-        self.dropout = nn.Dropout(p=0.1)
+        #self.dropout = nn.Dropout(p=0.1)
 
     def forward(self, x):
         shortcuts = []
@@ -107,7 +107,7 @@ class Encoder(nn.Module):
             z = layer(x)
             shortcuts.append(z)
             x = maxpool(z)
-            x = self.dropout(x)
+            #x = self.dropout(x)
         # Bottom part
         encoded = self.bottom(x)
 
