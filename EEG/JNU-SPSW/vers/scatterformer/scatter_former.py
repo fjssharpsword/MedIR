@@ -5,7 +5,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from scatnet_learn.scatnet_learn import InvariantLayerj1, ScatLayerj1, InvariantLayerj1_dct, InvariantLayerj2
+#https://github.com/fbcotter/scatnet_learn/blob/master/scatnet_learn/layers.py
+from scatnet_learn.scatnet_learn import InvariantLayerj1
 from einops.layers.torch import Rearrange
 from einops import repeat, rearrange
 from torch.utils.data.dataset import Dataset
@@ -65,8 +66,7 @@ class Mlp(nn.Module):
         x = self.fc2(x)
         x = self.drop(x)
         return x
-
-
+    
 class ScatteringPatchEmbedding(nn.Module):
     def __init__(self, in_channels, out_channels,
                  kernel=(3, 3),

@@ -41,7 +41,7 @@ def main():
 
         #st, ed = math.floor(st * sfreq), math.ceil(ed * sfreq)
         #spsw_span.append( eeg_data[0,st-100:ed+100] )
-        
+        #if chs != 'T6-O2': continue
         ch = chs.split("-", 1) #two electrodes
         F_idx, S_idx = -1, -1
         for i, ele in enumerate(ch_names):
