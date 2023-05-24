@@ -57,7 +57,7 @@ class SPSWInstance:
         for key in ann_dict.keys(): 
 
             #screening out specified channels
-            #if key not in ['T6-O2']: continue #['FP2-F8']
+            if key not in ['T6-O2']: continue #['FP2-F8']
 
             bi_ch = key.split("-", 1) #two electrodes
             F_idx, S_idx = -1, -1
