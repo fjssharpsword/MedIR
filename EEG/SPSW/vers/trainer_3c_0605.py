@@ -65,14 +65,23 @@ def eval_epoch(model, dataloader, loss_fn, device):
 
 def Train_Eval():
 
-    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
     torch.backends.cudnn.benchmark = True  # improve train speed slightly
     #log_writer = SummaryWriter('/data/tmpexec/tb_log')
     
     print('********************Train and validation********************')
-    X, y = build_dataset(down_fq=250, seg_len=250) #time domain
+    X_T, y = build_dataset(down_fq=250, seg_len=250) #time domain
+
+    X_F = np.fft.fft(X_T, axis=1) #Fourier transform, frequence domain
+
+    X_cA, X_cD = pywt.dwt(X_T, 'haar', mode='symmetric', axis=1) #wavelet transform, time-frequence domain
+    X_TF = np.concatenate((X_cA, X_cD), axis=1)
+
+    X = np.stack((X_T, X_F, X_TF), axis=1)
+
     print('\r Sample number: {}'.format(len(y)))
-    dataset = TensorDataset(torch.FloatTensor(X).unsqueeze(1), torch.LongTensor(y))
+    #dataset = TensorDataset(torch.FloatTensor(X).unsqueeze(1), torch.LongTensor(y))
+    dataset = TensorDataset(torch.FloatTensor(X), torch.LongTensor(y))
     kf_set = KFold(n_splits=10, shuffle=True).split(X, y)
 
     dice_list, acc_list, f1_list = [], [], []
@@ -85,7 +94,7 @@ def Train_Eval():
         tr_dataloader = DataLoader(dataset, batch_size = 512, sampler=tr_sampler)
         
         #model 
-        model = build_unet(in_ch=1, n_classes=1).to(device)  #conv-unet
+        model = build_unet(in_ch=3, n_classes=1).to(device)  #conv-unet
         optimizer_model = optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=1e-4)
         lr_scheduler_model = lr_scheduler.StepLR(optimizer_model , step_size = 10, gamma = 1)
         criterion = DiceLoss()   #nn.CrossEntropyLoss()
@@ -104,7 +113,7 @@ def Train_Eval():
                 best_acc = te_acc
                 best_f1 = te_f1
                 if len(dice_list) == 0 or (len(dice_list) > 0 and best_dice > np.max(dice_list)):
-                    torch.save(model.state_dict(), '/data/pycode/MedIR/EEG/SPSW/ckpts/utime.pkl')
+                    torch.save(model.state_dict(), '/data/pycode/MedIR/EEG/SPSW/ckpts/utime_3c.pkl')
                     print(' Epoch: {} model has been already save!'.format(epoch+1))
        
         dice_list.append(best_dice)
@@ -124,4 +133,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    #nohup python3 -u trainer.py >> /data/tmpexec/tb_log/utime.log 2>&1 &
+    #nohup python3 -u trainer.py >> /data/tmpexec/tb_log/utime_3c.log 2>&1 &
