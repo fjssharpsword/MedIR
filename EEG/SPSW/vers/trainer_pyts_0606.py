@@ -11,6 +11,10 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.utils.data import TensorDataset, DataLoader, SubsetRandomSampler
 from sklearn.metrics import confusion_matrix, f1_score
+import pywt
+from scipy.signal import savgol_filter
+from pyts.decomposition import SingularSpectrumAnalysis
+from pyts.preprocessing import PowerTransformer, QuantileTransformer, StandardScaler, MinMaxScaler, MaxAbsScaler
 from tensorboardX import SummaryWriter
 #self-defined
 from dsts.generator import build_dataset, dice_coef
@@ -71,7 +75,17 @@ def Train_Eval():
     print('********************Train and validation********************')
     X, y = build_dataset(down_fq=250, seg_len=250) #time domain
     print('\r Sample number: {}'.format(len(y)))
+
+    #X = savgol_filter(X, window_length=25, polyorder=2, axis=1) #Savitzky-Golay Filter
+    #X = SingularSpectrumAnalysis(window_size=15, groups=3).fit_transform(X)#Singular Spectrum Analysis
+    #X = StandardScaler().transform(X)
+    #X = MinMaxScaler(sample_range=(0, 1)).transform(X)
+    #X = MaxAbsScaler().transform(X)
+    #X = PowerTransformer().transform(X) 
+    X = QuantileTransformer(n_quantiles=X.shape[1]).transform(X) 
+
     dataset = TensorDataset(torch.FloatTensor(X).unsqueeze(1), torch.LongTensor(y))
+    #dataset = TensorDataset(torch.FloatTensor(X), torch.LongTensor(y))
     kf_set = KFold(n_splits=10, shuffle=True).split(X, y)
 
     dice_list, acc_list, f1_list = [], [], []
@@ -103,7 +117,7 @@ def Train_Eval():
                 best_acc = te_acc
                 best_f1 = te_f1
                 if len(dice_list) == 0 or (len(dice_list) > 0 and best_dice > np.max(dice_list)):
-                    torch.save(model.state_dict(), '/data/pycode/MedIR/EEG/SPSW/ckpts/utime.pkl')
+                    torch.save(model.state_dict(), '/data/pycode/MedIR/EEG/SPSW/ckpts/utime_quantrans.pkl')
                     print(' Epoch: {} model has been already save!'.format(epoch+1))
        
         dice_list.append(best_dice)
@@ -123,4 +137,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    #nohup python3 -u trainer.py >> /data/tmpexec/tb_log/utime.log 2>&1 &
+    #nohup python3 -u trainer.py >> /data/tmpexec/tb_log/utime_quantrans.log 2>&1 &
