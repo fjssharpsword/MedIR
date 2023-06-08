@@ -91,6 +91,7 @@ def Train_Eval():
         #cross-validation
         best_dice, best_acc, best_f1 = 0.0, 0.0, 0.0
         for epoch in range(100):
+
             tr_loss = train_epoch(model, tr_dataloader, criterion, optimizer_model, device)
             lr_scheduler_model.step()  #about lr and gamma
             te_coef, te_acc, te_f1 = eval_epoch(model, te_dataloader, criterion, device)

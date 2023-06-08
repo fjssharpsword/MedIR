@@ -30,8 +30,7 @@ def collection_file(dir):
 
     return file_dict
 
-def parse_lbl(ann_path):
-    sym_sz = ['bckg', 'spsw', 'seiz', 'fnsz', 'gnsz', 'spsz', 'cpsz', 'absz', 'tnsz', 'cnsz', 'tcsz', 'atsz', 'mysz', 'nesz']
+def parse_lbl(ann_path, sym_sz):
     mon_dict = {}
     sym_dict = {}
     ann_dict = {}
@@ -68,6 +67,7 @@ def parse_lbl(ann_path):
     return ann_dict
 
 def build_patch(session_dict, fq=250, n_win=1):
+    sym_sz = ['bckg', 'seiz', 'fnsz', 'gnsz', 'spsz', 'cpsz', 'absz', 'tnsz', 'cnsz', 'tcsz', 'atsz', 'mysz', 'nesz']
     win_len = fq * n_win
     seg, lbl = [], []
     for edf_file, lbl_file in session_dict.values():
@@ -79,7 +79,7 @@ def build_patch(session_dict, fq=250, n_win=1):
         np_eeg = raw.get_data() #numpy data
         ch_names = raw.info['ch_names'] #electrodes
 
-        ann_dict = parse_lbl(lbl_file) #obtain lables 
+        ann_dict = parse_lbl(lbl_file, sym_sz) #obtain lables 
         for key in ann_dict.keys():
             if len(ann_dict[key]) == 1: continue #only bckg
 
@@ -97,8 +97,7 @@ def build_patch(session_dict, fq=250, n_win=1):
                     if num > 0: 
                         for i in range(num):
                             seg.append(ch_eeg[st+i*win_len: st+(i+1)*win_len])
-                            if cls == 'bckg': lbl.append(0)
-                            else: lbl.append(1) #abnormal waves
+                            lbl.append(sym_sz.index(cls))
 
     return np.array(seg), np.array(lbl)
 
@@ -113,8 +112,8 @@ def build_dataset():
     print(te_seg.shape)
     print(te_lbl.shape)
     print(te_lbl.sum())
-    #np.save('/data/pycode/MedIR/EEG/TUSZ/dsts/tusz_te_eeg_1s.npy', te_seg)
-    #np.save('/data/pycode/MedIR/EEG/TUSZ/dsts/tusz_te_lbl_1s.npy', te_lbl)
+    np.save('/data/pycode/MedIR/EEG/TUSZ/dsts/tusz_te_eeg_1s.npy', te_seg)
+    np.save('/data/pycode/MedIR/EEG/TUSZ/dsts/tusz_te_lbl_1s.npy', te_lbl)
 
     #train dataset
     tr_dir = '/data/fjsdata/EEG/TUH_EEG/TUSZ/edf/train/'
@@ -125,8 +124,8 @@ def build_dataset():
     print(tr_seg.shape)
     print(tr_lbl.shape)
     print(tr_lbl.sum())
-    #np.save('/data/pycode/MedIR/EEG/TUSZ/dsts/tusz_tr_eeg_1s.npy', tr_seg)
-    #np.save('/data/pycode/MedIR/EEG/TUSZ/dsts/tusz_tr_lbl_1s.npy', tr_lbl)
+    np.save('/data/pycode/MedIR/EEG/TUSZ/dsts/tusz_tr_eeg_1s.npy', tr_seg)
+    np.save('/data/pycode/MedIR/EEG/TUSZ/dsts/tusz_tr_lbl_1s.npy', tr_lbl)
 
 def main():
     build_dataset()
