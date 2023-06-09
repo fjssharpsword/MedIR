@@ -174,19 +174,19 @@ class build_unet(nn.Module):
         
         """ Encoder """
         s1, p1 = self.e1(inputs)
-        p1 = self.local_sa(p1)
+        #p1 = self.local_sa(p1)
         #p1 = self.dropout(p1)
 
         s2, p2 = self.e2(p1)
-        p2 = self.local_sa(p2)
+        #p2 = self.local_sa(p2)
         #p2 = self.dropout(p2)
 
         s3, p3 = self.e3(p2)
-        p3 = self.local_sa(p3)
+        #p3 = self.local_sa(p3)
         #p3 = self.dropout(p3)
 
         s4, p4 = self.e4(p3)
-        p4 = self.local_sa(p4)
+        #p4 = self.local_sa(p4)
         #p4 = self.dropout(p4)
 
         """ Bottleneck """

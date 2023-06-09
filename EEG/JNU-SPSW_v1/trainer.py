@@ -11,10 +11,15 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 from torch.utils.data import TensorDataset, DataLoader, SubsetRandomSampler
 from sklearn.metrics import confusion_matrix, f1_score
+import pywt
 from tensorboardX import SummaryWriter
 #self-defined
 from dsts.generator import build_dataset, dice_coef
-from nets.utime import build_unet, DiceLoss
+#from nets.vanilla_unet import build_unet, DiceLoss
+#from nets.attention_unet import build_unet, DiceLoss
+#from nets.cdconv_unet import build_unet, DiceLoss
+from nets.sa_unet import build_unet, DiceLoss
+#from nets.utime import build_unet, DiceLoss
 
 def train_epoch(model, dataloader, loss_fn, optimizer, device):
     tr_loss = []
@@ -46,6 +51,7 @@ def eval_epoch(model, dataloader, loss_fn, device):
 
         gt_lbl = torch.cat((gt_lbl, lbls), 0)
         var_out = torch.where(var_out>0.5, 1, 0) #for dice loss
+        #_, var_out = torch.max(var_out.data, 1) #for CE loss
         pr_lbl = torch.cat((pr_lbl, var_out.cpu()), 0)
 
     te_loss = np.mean(te_loss)
@@ -58,18 +64,27 @@ def eval_epoch(model, dataloader, loss_fn, device):
     tn, fp, fn, tp = confusion_matrix(gt_lbl.numpy(), pr_lbl.numpy()).ravel()
     te_sen = tp /(tp+fn)
     te_spe = tn /(tn+fp)
+    #print('\n Evaluation: Accuracy={:.4f}, Sensitivity={:.4f}, Specificity={:.4f}'.format(te_acc, te_sen, te_spe))
+    #sk_f1 = f1_score(gt_lbl.numpy(), pr_lbl.numpy())
     te_f1 = 2*(te_sen*te_spe)/(te_sen+te_spe)
+    #print('\n Evaluation: SK_F1={:.4f}, CM_F1={:.4f}'.format(sk_f1, cm_f1))
 
     return te_coef, te_acc, te_f1
 
 def Train_Eval():
 
-    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
     torch.backends.cudnn.benchmark = True  # improve train speed slightly
     #log_writer = SummaryWriter('/data/tmpexec/tb_log')
     
     print('********************Train and validation********************')
     X, y = build_dataset(down_fq=250, seg_len=250) #time domain
+
+    #X = np.fft.fft(X, axis=1) #Fourier transform, frequence domain
+
+    #X_cA, X_cD = pywt.dwt(X, 'haar', mode='symmetric', axis=1) #wavelet transform, time-frequence domain
+    #X = np.concatenate((X_cA, X_cD), axis=1)
+
     print('\r Sample number: {}'.format(len(y)))
     dataset = TensorDataset(torch.FloatTensor(X).unsqueeze(1), torch.LongTensor(y))
     kf_set = KFold(n_splits=10, shuffle=True).split(X, y)
@@ -91,11 +106,11 @@ def Train_Eval():
         #cross-validation
         best_dice, best_acc, best_f1 = 0.0, 0.0, 0.0
         for epoch in range(100):
-
             tr_loss = train_epoch(model, tr_dataloader, criterion, optimizer_model, device)
             lr_scheduler_model.step()  #about lr and gamma
             te_coef, te_acc, te_f1 = eval_epoch(model, te_dataloader, criterion, device)
 
+            #log_writer.add_scalars('EEG/CHB-MIT/Loss', {'Train':tr_loss, 'Test':te_loss}, epoch+1)
             print('\r Train Epoch_{}: DiceLoss={:.4f}'.format(epoch+1, tr_loss))
             print('\r Validation Epoch_{}: DiceCoef={:.4f}, Accuracy={:.4f}, F1 Score={:.4f}'.format(epoch+1, te_coef, te_acc, te_f1))
 
@@ -104,7 +119,7 @@ def Train_Eval():
                 best_acc = te_acc
                 best_f1 = te_f1
                 if len(dice_list) == 0 or (len(dice_list) > 0 and best_dice > np.max(dice_list)):
-                    torch.save(model.state_dict(), '/data/pycode/MedIR/EEG/SPSW/ckpts/utime.pkl')
+                    torch.save(model.state_dict(), '/data/pycode/MedIR/EEG/JNU-SPSW/ckpts/sa_unet_t.pkl')
                     print(' Epoch: {} model has been already save!'.format(epoch+1))
        
         dice_list.append(best_dice)
@@ -124,4 +139,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    #nohup python3 -u trainer.py >> /data/tmpexec/tb_log/utime.log 2>&1 &
+    #nohup python3 -u trainer.py >> /data/tmpexec/tb_log/sa_unet_t.log 2>&1 &

@@ -6,6 +6,7 @@ import random
 import os
 import pickle 
 import matplotlib.pyplot as plt
+import pywt
 
 def dice_coef(input, target):
     smooth = 1
@@ -44,6 +45,7 @@ class SPSWInstance:
         #time_duration = raw_np.n_times / self.sfreq #second
         if  sfreq != down_fq:
             raw_np.resample(down_fq, npad="auto") 
+        self.down_fq = down_fq
 
         #get SPSW instance
         ann_dict = self._parse_annotation(ann_path)
@@ -114,6 +116,12 @@ class SPSWInstance:
 
         return ann_dict
     
+    def _wavelet_transform(self, eeg):
+        fc = pywt.central_frequency('cgau8')
+        scales = (2 * fc * self.down_fq) / np.arange(self.down_fq, 0, -1)
+        eeg_wt, _ = pywt.cwt(eeg, scales, 'cgau8', 1.0/self.down_fq)
+        return eeg_wt
+    
 def build_dataset(down_fq, seg_len):
     dir = "/data/fjsdata/EEG/JNU-SPSW/files1/"
     ids = []
@@ -146,11 +154,11 @@ def main():
         axes[i].plot(segs[1], eeg[segs[1]], marker='v', color='r')
         axes[i].grid(b=True, ls=':')
 
-    fig.savefig('/data/pycode/MedIR/EEG/JNU-SPSW/imgs/eeg_segs.png', dpi=300, bbox_inches='tight') 
+    fig.savefig('/data/pycode/MedIR/EEG/SPSW/imgs/eeg_segs.png', dpi=300, bbox_inches='tight') 
 
 if __name__ == "__main__":
     main()
-    #nohup python3 Generator.py > /data/tmpexec/tb_log/Generator.log 2>&1 &
+    #nohup python3 Generator.py > /data/tmpexec/tb_log/generator.log 2>&1 &
 
     
             
