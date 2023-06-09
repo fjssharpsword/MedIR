@@ -12,15 +12,15 @@ def collection_file(dir):
     for root, _, files in os.walk(dir):
         for file in files:
             ex_name = os.path.splitext(file)[1]
-            if ex_name in ['.edf', '.tse_bi']:
+            if ex_name in ['.edf', '.tse']:
                 file_name = os.path.splitext(file)[0]
                 file_path = os.path.join(root, file)
                 if file_name in file_dict.keys():
                     cur_file = file_dict[file_name][0]
                     cur_ext = os.path.splitext(cur_file)[1]
-                    if cur_ext=='.edf' and ex_name == '.tse_bi': 
+                    if cur_ext=='.edf' and ex_name == '.tse': 
                         file_dict[file_name].append(file_path) #edf file lies first
-                    elif cur_ext =='.tse_bi' and ex_name == '.edf': 
+                    elif cur_ext =='.tse' and ex_name == '.edf': 
                         file_dict[file_name].insert(0,file_path) #edf file lies first
                     else: 
                         print('Collecting file error:' + file_name)
@@ -39,16 +39,12 @@ def parse_lbl(ann_path):
     return ann_list
 
 def build_patch(session_dict, fq=250, n_win=2):
-    sym_sz = ['bckg', 'seiz']
+    sym_sz = ['bckg', 'cpsz', 'spsz', 'tnsz', 'mysz', 'tcsz', 'gnsz', 'fnsz', 'absz']
     montage_list = ['FP1-F7', 'F7-T3', 'T3-T5', 'T5-O1', 'FP2-F8', 'F8-T4', 'T4-T6', 'T6-O2', 'A1-T3', 'T3-C3', 'C3-CZ',\
                'CZ-C4', 'C4-T4', 'T4-A2', 'FP1-F3', 'F3-C3', 'C3-P3', 'P3-O1', 'FP2-F4', 'F4-C4', 'C4-P4', 'P4-O2']
     win_len = fq * n_win
     seg, lbl = [], []
     for edf_file, lbl_file in session_dict.values():
-        
-        ann_list = parse_lbl(lbl_file) #obtain lables
-        if len(ann_list) == 1: continue #only bckg
-
         #calculating bipolar
         raw = mne.io.read_raw_edf(edf_file, preload=True) #load edf 
         #raw.filter(l_freq=1, h_freq=70) #filter
@@ -69,10 +65,13 @@ def build_patch(session_dict, fq=250, n_win=2):
         bi_eeg = np.array(bi_eeg)
         assert bi_eeg.shape[0] == len(montage_list)
         #windows according to labels
-        
+        ann_list = parse_lbl(lbl_file) #obtain lables
+        if len(ann_list) == 1: continue #only bckg
         for st, ed, sz in ann_list:
-            #if sym_sz.index(sz) == 0 and lbl.count(0)/(len(lbl)+1)>0.50: #keep non-sz balance
-            #    continue 
+
+            if sym_sz.index(sz) == 0 and lbl.count(0)/(len(lbl)+1)>0.30: #keep non-sz balance
+                continue 
+            
             st, ed = math.floor(st * fq), math.ceil(ed * fq)
             num = int((ed-st)/win_len)
             if num > 0: 

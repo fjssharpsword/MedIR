@@ -20,6 +20,8 @@ class EEG1DConvNet(nn.Module):
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(256, num_classes)
 
+        self.softmax = nn.Softmax(dim=1)
+
     def forward(self, x):
 
         x = self.conv1(x)
@@ -36,6 +38,7 @@ class EEG1DConvNet(nn.Module):
         x = self.relu(x)
         x = self.fc2(x)
 
+        x = self.softmax(x)
         return x
     
 class EEG2DConvNet(nn.Module):
@@ -56,6 +59,8 @@ class EEG2DConvNet(nn.Module):
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(256, num_classes)
 
+        self.softmax = nn.Softmax(dim=1)
+
     def forward(self, x):
 
         x = self.conv1(x)
@@ -72,12 +77,14 @@ class EEG2DConvNet(nn.Module):
         x = self.relu(x)
         x = self.fc2(x)
 
+        x = self.softmax(x)
+
         return x
     
 if __name__ == "__main__":
 
     device = torch.device("cuda:4" if torch.cuda.is_available() else "cpu")
-    x = torch.rand(10, 1, 250).to(device)
-    model = EEG1DConvNet(in_ch = 1, num_classes=2).to(device)
+    x = torch.rand(10, 22, 500).to(device)
+    model = EEG1DConvNet(in_ch = 22, num_classes=8).to(device)
     out = model(x)
     print(out.shape)
