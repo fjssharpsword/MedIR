@@ -51,6 +51,21 @@ class ConvBNReLU(nn.Module):
 
     def forward(self, x):
         return self.layers(x)
+
+class Spatial_layer(nn.Module):#spatial attention layer
+    def __init__(self):
+        super(Spatial_layer, self).__init__()
+
+        self.conv1 = nn.Conv1d(2, 1, kernel_size=3, padding=1, bias=False)
+        self.sigmoid = nn.Sigmoid()
+        
+    def forward(self, x):
+        identity = x
+        avg_out = torch.mean(x, dim=1, keepdim=True)
+        max_out, _ = torch.max(x, dim=1, keepdim=True)
+        x = torch.cat([avg_out, max_out], dim=1)
+        x = self.conv1(x)
+        return self.sigmoid(x)*identity
     
 class Encoder(nn.Module):
     def __init__(self, filters=[16, 32, 64, 128], in_channels=5, maxpool_kernels=[2, 2, 2, 2], kernel_size=3, dilation=1):
@@ -99,7 +114,7 @@ class Encoder(nn.Module):
                 kernel_size=self.kernel_size
             ),
         )
-        #self.dropout = nn.Dropout(p=0.1)
+        self.sa_layer = Spatial_layer()
 
     def forward(self, x):
         shortcuts = []
@@ -107,7 +122,7 @@ class Encoder(nn.Module):
             z = layer(x)
             shortcuts.append(z)
             x = maxpool(z)
-            #x = self.dropout(x)
+            x = self.sa_layer(x) #layer added by fjs
         # Bottom part
         encoded = self.bottom(x)
 
@@ -197,7 +212,7 @@ class build_unet(nn.Module):
 #https://medium.com/analytics-vidhya/unet-implementation-in-pytorch-idiot-developer-da40d955f201
 if __name__ == "__main__":
     device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
-    inputs = torch.randn((2, 1, 250)).to(device)
+    inputs = torch.randn((8, 1, 250)).to(device)
     model = build_unet(in_ch =1, n_classes=1).to(device)
     y = model(inputs)
     print(y.shape)

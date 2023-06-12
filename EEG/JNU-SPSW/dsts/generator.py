@@ -154,7 +154,7 @@ def main():
         axes[i].plot(segs[1], eeg[segs[1]], marker='v', color='r')
         axes[i].grid(b=True, ls=':')
 
-    fig.savefig('/data/pycode/MedIR/EEG/SPSW/imgs/eeg_segs.png', dpi=300, bbox_inches='tight') 
+    fig.savefig('/data/pycode/MedIR/EEG/JNU-SPSW/imgs/eeg_segs.png', dpi=300, bbox_inches='tight') 
 
 if __name__ == "__main__":
     main()
