@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- 
+
+ file: $NEDC_NFC/class/python/nedc_ann_eeg_tools/nedc_dpath_xml_schema_v00.xsd
+
+ revision history:
+  20220323 (ML): added comments
+  20220311 (PM): init
+
+ This file contains a schema for the xml file format for EEG annotations.
+
+ An EEG annotation file contains these header elements:
+
+ # version = csv_v1.0.0
+ # bname = ex_1
+ # duration = 185.0000secs
+ # montage_file = $TUAR/v2.0.0/DOCS/03_tcp_ref_a_montage.txt
+ # annotation_label_file = $TUAR/v2.0.0/DOCS/nedc_ann_eeg_tools_map_v01.txt
+ #
+ channel,start_time,stop_time,label,confidence
+ FP1-F7,0.0306,6.8602,eyem,1.0000
+ FP1-F7,9.3354,16.7914,eyem,1.0000
+ ...
+ 
+ all header information is stored as elements directly under the root 
+ element, specifically:
+
+ bname (filename without path or extension) is stored as an element named 
+ bname directly under the root element
+ 
+ the duration (total time in seconds of all annotations) is stored as an 
+ element named duration under the root element 
+
+ the montage_file (full path to file where channel names are defined) is 
+ stored as an element named montage_tag under the root element
+
+ the annotation_label_file (full path to file where annotation labels are
+ defined) is stored as an element named annotation_label_file under the 
+ root element
+
+ all csv column label data are stored under the second Attribute element.
+ the Region element (all attributes of the Region element in the schema 
+ can be found below as the Vertex element) and the Vertex element 
+
+ each individual channel is stored as an element named channel
+
+ the start and stop time (seconds) is stored as a list data type attribute 
+ of the endpoints element
+
+ the label (event type) is stored as an attribute under the event element
+ (this attribute can found found towards the bottom of the schema)
+
+ the confidence is stored as a list data type under the probability
+ element 
+
+-->
+
+<!-- begin the schema definition, information about
+     the XML version can be found in the URL below  -->
+<!--                                                -->
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified"
+ xmlns:xs="http://www.w3.org/2001/XMLSchema">
+                                                                               
+ <!-- root is the parent element for the entire file only one 
+      root element can exist in a single XML file             -->
+ <!--                                                         -->
+ <xs:element name="root">
+   
+  <!-- complexType means that root can hold multiple types of values -->
+  <!--                                                               --> 
+  <xs:complexType>
+   <xs:sequence>
+      
+    <!-- the bname element will hold the XML file name
+         only one bname element can exist per XML file -->
+    <!--                                               -->
+    <xs:element name="bname" type="xs:string" />
+    
+    <!-- the duration element will hold the total duration of the 
+         signal only one duration element can exist per XML file  -->
+    <!--                                                          -->
+    <xs:element name="duration" type="xs:string" />
+    
+    <!-- the montage_tag element will hold the path and name of the 
+         montage file only a single montage_tag can exist per XML file -->
+    <!--                                                               -->
+    <xs:element name="montage_tag" type="xs:string" />
+    
+    <!-- the annotation_label_file element will hold the path and name 
+         of the annotation label file only a single annotation_label_file 
+         element can exist per XML file                                   -->
+    <!--                                                                  -->
+    <xs:element name="annotation_label_file" type="xs:string" />
+    
+    <!-- the label element is the parent element of the endpoints and 
+         montage_channels elements only a single label element can exist 
+         per XML file                                                    -->
+    <!--                                                                 -->
+    <xs:element name="label">
+     <xs:complexType>
+      <xs:sequence>
+	 
+       <!-- the endpoints element will hold the start point of first 
+            event and end point of last event only a single endpoints 
+            element can exist per XML file                            -->
+       <!--                                                           -->
+       <xs:element name="endpoints">
+        <xs:complexType>
+	   
+	 <!-- simpleContent means endpoints will be extended to include 
+              the attributes: name and dtype                            -->
+	 <!--                                                           -->
+         <xs:simpleContent>
+          <xs:extension base="xs:string">
+           <xs:attribute name="name" type="xs:string" use="required" />
+	    
+	   <!-- the dtype attribute will hold the the type of value 
+                the endpoints are stored in                         -->
+	   <!--                                                     -->
+           <xs:attribute name="dtype" type="xs:string" use="required" /> 
+          </xs:extension>
+         </xs:simpleContent>
+        </xs:complexType>
+       </xs:element>
+       
+       <!-- montage_channels is the parent element of channel only a 
+            single montage_channels element can exist per XML file   -->
+       <!--                                                          -->
+       <xs:element name="montage_channels">
+        <xs:complexType>
+         <xs:sequence>
+	    
+	  <!-- channel is the parent element of event an unlimited 
+               amount of channel elements can occur in a XML file  -->
+	  <!--                                                     -->
+          <xs:element maxOccurs="unbounded" name="channel">
+           <xs:complexType>
+            <xs:sequence>
+	       
+	     <!-- the event element is the parent element of endpoints and 
+                  probability the event element will hold data for each 
+                  annotation event an unlimited amount of event elements 
+                  can occur in a XML file                                  -->
+	     <!--                                                          -->
+             <xs:element maxOccurs="unbounded" name="event">
+              <xs:complexType>
+	       <xs:sequence>
+		  
+		<!-- the endpoints element will hold the start and end 
+                     point of the specific event only a single endpoints 
+                     element can exist per event element                 -->
+		<!--                                                     -->
+                <xs:element name="endpoints">
+                 <xs:complexType>
+                  <xs:simpleContent>
+		     
+		   <!-- extending endpoints to include the 
+                        name and dtype attributes          -->
+		   <!--                                    --> 
+                   <xs:extension base="xs:string">
+                    <xs:attribute name="name" type="xs:string"
+		     use="required" />
+                    <xs:attribute name="dtype" type="xs:string"
+		     use="required" />
+                   </xs:extension>
+                  </xs:simpleContent>
+                 </xs:complexType>
+                </xs:element>
+		
+		<!-- the probability element will hold the confidence 
+                     value of the specific event only a single probability 
+                     element can exist per event element                   -->
+		<!--                                                       -->
+                <xs:element name="probability">		  
+                 <xs:complexType>
+                  <xs:simpleContent>
+		     
+		   <!-- extending probability to include the 
+                        name and dtype attributes            -->
+		   <!--                                      -->
+                   <xs:extension base="xs:string">
+                    <xs:attribute name="name" type="xs:string"
+		     use="required" />
+                    <xs:attribute name="dtype" type="xs:string"
+		     use="required" />
+                   </xs:extension>
+                  </xs:simpleContent>
+                 </xs:complexType>
+                </xs:element>
+               </xs:sequence>
+	       
+	       <!-- these are attributes of the event element
+                    the name attribute will be the event type -->
+	       <!--                                           -->
+               <xs:attribute name="name" type="xs:string" use="required" />
+               <xs:attribute name="dtype" type="xs:string" use="required" />
+              </xs:complexType>
+             </xs:element>
+            </xs:sequence>
+	    
+	    <!-- these are attributes of the channel element
+                 the name attribute will hold the specific channel -->
+	    <!--                                                   -->
+            <xs:attribute name="name" type="xs:string" use="required" />
+            <xs:attribute name="dtype" type="xs:string" use="required" />
+           </xs:complexType>
+          </xs:element>
+         </xs:sequence>
+	 
+	 <!-- these are attributes of the montage_channels element -->
+	 <!--                                                      -->
+         <xs:attribute name="name" type="xs:string" use="required" />
+         <xs:attribute name="dtype" type="xs:string" use="required" />
+        </xs:complexType>
+       </xs:element>
+      </xs:sequence>
+     
+      <!-- these are attributes of the label element the 
+           name attribute is the file name with the path -->
+      <!--                                               -->
+      <xs:attribute name="name" type="xs:string" use="required" />
+      <xs:attribute name="dtype" type="xs:string" use="required" />
+     </xs:complexType>
+    </xs:element>
+   </xs:sequence>
+  </xs:complexType>
+ </xs:element>
+</xs:schema>
+
+<!--             -->
+<!-- end of file -->

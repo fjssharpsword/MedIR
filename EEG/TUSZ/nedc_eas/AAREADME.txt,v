@@ -1,0 +1,867 @@
+head	1.20;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.20
+date	2022.12.23.17.48.07;	author tun67934;	state Exp;
+branches;
+next	1.19;
+
+1.19
+date	2022.07.07.20.51.12;	author tun67934;	state Exp;
+branches;
+next	1.18;
+
+1.18
+date	2022.07.05.21.00.25;	author tun67934;	state Exp;
+branches;
+next	1.17;
+
+1.17
+date	2022.05.06.20.18.39;	author picone;	state Exp;
+branches;
+next	1.16;
+
+1.16
+date	2022.05.06.20.11.41;	author tug68812;	state Exp;
+branches;
+next	1.15;
+
+1.15
+date	2022.05.06.11.44.16;	author tug68812;	state Exp;
+branches;
+next	1.14;
+
+1.14
+date	2022.05.01.01.53.19;	author picone;	state Exp;
+branches;
+next	1.13;
+
+1.13
+date	2022.04.15.19.29.40;	author tun67934;	state Exp;
+branches;
+next	1.12;
+
+1.12
+date	2021.12.07.22.10.37;	author picone;	state Exp;
+branches;
+next	1.11;
+
+1.11
+date	2021.10.15.14.59.04;	author thaocap;	state Exp;
+branches;
+next	1.10;
+
+1.10
+date	2021.08.26.13.24.07;	author picone;	state Exp;
+branches;
+next	1.9;
+
+1.9
+date	2021.08.26.13.21.42;	author picone;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2021.06.17.14.29.32;	author picone;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2021.06.17.14.25.50;	author picone;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2021.06.15.20.46.53;	author thaocap;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2021.06.15.19.15.39;	author picone;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2021.06.15.03.07.44;	author picone;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2021.06.04.01.14.21;	author tuj64267;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2021.06.03.02.22.23;	author tuj64267;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2021.06.03.02.20.35;	author tuj64267;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.20
+log
+@updated version
+@
+text
+@File: nedc_eas/v5.1.1/AAREADME.txt
+Tool: The NEDC EEG Annotation System
+Version: 5.1.1
+
+-------------------------------------------------------------------------------
+Change Log:
+(20220505) clarifications for Windows users
+(20220430) incorporates our new annotation libraries
+(20210826) fixed some bugs in reading cvs files; changed the name to EAS
+(20210529) updated to Python 3.7.x improved portability
+-------------------------------------------------------------------------------
+
+This directory contains all the Python code needed to run our annotation
+tool. This tool has been used to annotate various NEDC EEG corpora. To
+learn more about the origins of the tool, please see this publication:
+
+ Capp, N., Krome, E., Obeid, I., & Picone, J. (2017). Facilitating the
+ Annotation of Seizure Events Through an Extensible Visualization
+ Tool. In I. Obeid, I. Selesnick, & J. Picone (Eds.), Proceedings of
+ the IEEE Signal Processing in Medicine and Biology Symposium
+ (p. 1). IEEE. https://doi.org/10.1109/SPMB.2017.8257043
+
+Please cite this publication when referring to this tool.
+
+A. WHAT'S NEW
+
+Version 5.1.1 changes:
+  + Update the README file to clarify the installation for Window User
+  + Small cosmetic changes 
+
+B. INSTALLATION REQUIREMENTS
+
+Python code unfortunately often depends on a large number of add-ons, making
+it very challenging to port code into new environments. This tool has been
+tested extensively on Windows and Mac machines running Python v3.9.x.
+
+Software tools required include:
+
+ o Python 3.7.x or higher (we recommend installing Anaconda)
+ o PyQt5: https://www.riverbankcomputing.com/software/pyqt/download5
+ o Numpy/SciPy: http://www.numpy.org/
+ o PyQtGraph: http://www.pyqtgraph.org/ (v0.12.1 or higher)
+ o ReportLab: http://www.reportlab.com/
+ o lxml: https://lxml.de
+ o bs4: https://www.crummy.com/software/BeautifulSoup/
+
+There is a requirements.txt included in the release that helps you automate
+the process of updating your environment.
+
+C. USER'S GUIDE
+
+C.1. WINDOW USERS
+
+For Window users, we recommend users install Anaconda in order to run
+a bash emulator.
+
+Through the Anaconda prompt, create a new environment and specify the proper
+python version. We can install all dependencies with a single command:
+
+ $ conda create -n <my_environment_name> python=3.9 pyqt pyqtgraph reportlab \
+ lxml scipy bs4 m2-base -c conda-forge
+
+Once the software has been installed, you need to do the following things if
+you want to run this from any directory:
+
+ - activate your conda environment
+
+    $ conda activate <my_environment_name>
+
+ - set three environment variables - NEDC_NFC, PATH, and PYTHONPATH
+
+    $ setx NEDC_NFC "<nedc_eas_installation_path>"
+    $ setx PATH "%PATH%;%NEDC_NFC%\bin"
+    $ setx PYTHONPATH "%PYTHONPATH%;%NEDC_NFC%\lib"
+
+ - restart your command prompt and activate your environment again. 
+   Then launch a bash session:
+
+    $ bash
+ 
+You should be able to type:
+
+ $ which nedc_eas
+
+and see the command. Then you can simply type:
+
+ $ nedc_eas
+
+Note: Since this is on Windows which uses DOS path conventions, be careful
+with the directory structure of where you place the application. Avoid spaces
+and special characteries in parent directories.
+
+C.2. LINUX/MAC USERS
+
+For Mac users, since Mac OS X 10.8 comes with Python 2.7, you may 
+need to utilize pip3 when attempting to install dependencies:
+
+ $ pip3 install pyqt5
+ $ pip3 install pyqtgraph
+ $ pip3 install reportlab
+ $ pip3 install lxml
+ $ pip3 install scipy
+ $ pip3 install bs4
+
+The easiest way to run this is to change your current working directory
+to the root directory of the installation and execute the tool as follows:
+ $ cd <my_install_location>/nedc_eas/v5.1.1
+ $ ./bin/nedc_eas
+ 
+Once the software has been installed, you need to do the following things if
+you want to run this from any directory:
+
+ - set the environment variable NEDC_NFC to the root directory
+   of the installation:
+      $ export NEDC_NFC='<my_install_location>/nedc_eas/v5.1.1'
+
+ - put $NEDC_NFC/bin in your path:
+      $ export PATH=$PATH:$NEDC_NFC
+ 
+You should be able to type:
+
+ $ which nedc_eas
+
+and see the command. Then you can simply type:
+
+ $ nedc_eas
+
+After loading the tool, click on open under file on the navigation bar and
+load the edf file that you wish to annotate.
+
+A short tutorial on how to use the tool is available here:
+
+https://www.isip.piconepress.com/projects/tuh_eeg/downloads/nedc_eas/v5.0.5/videos/getting_started/getting_started_v00.mp4
+
+-----------------------------
+
+If you have any additional comments or questions about the data,
+please direct them to help@@nedcdata.org.
+
+Best regards,
+
+Joe Picone
+@
+
+
+1.19
+log
+@*** empty log message ***
+@
+text
+@d107 1
+a107 1
+ $ cd <my_install_location>/nedc_eas/v5.1.0
+d115 1
+a115 1
+      $ export NEDC_NFC='<my_install_location>/nedc_eas/v5.1.0'
+@
+
+
+1.18
+log
+@*** empty log message ***
+@
+text
+@d57 2
+a58 2
+Through the Anaconda Powershell prompt, create a new environment and specify 
+the proper python version:
+d64 1
+a64 1
+you want to run the tool:
+d66 1
+a66 2
+ - set the environment variable NEDC_NFC to the root directory
+   of the installation:
+d68 1
+a68 1
+    $ export NEDC_NFC='<my_install_location>/nedc_eas/v5.1.1'
+d70 1
+a70 1
+ - put $NEDC_NFC/bin in your path:
+d72 3
+a74 1
+    $ export PATH=$PATH:$NEDC_NFC
+d76 2
+a77 1
+  - go to the bin folder 
+d79 1
+a79 5
+    $ cd '<my_install_location>/nedc_eas/v5.1.1/bin'
+
+  - activate the tool
+
+    $ bash nedc_eas
+d81 1
+a81 15
+If you want to run the tool from any directory:
+
+  - Go to "Edit the system environment variables"
+
+  - Click "Environment Variables"
+
+  - Under System Variables, click "New" and add:
+    Variable Name : NEDC_NFC
+    Varaible Value: '<my_install_location>/nedc_eas/v5.1.1'
+  
+  - Also under System Variable, click on "Path" then Edit and add:
+    "%NEDC_NFC%\bin" to the list
+
+  - Once you are done, you should be able to launch the Anaconda Powershell 
+    Prompt
+d83 1
+a83 1
+  - Activate your environment and able to type:
+d85 1
+a85 1
+      $ which nedc_eas
+d87 1
+a87 1
+    and see the command. Then you can simply type:
+d89 3
+a91 1
+      $ bash nedc_eas
+@
+
+
+1.17
+log
+@updated.
+@
+text
+@d1 1
+a1 1
+File: nedc_eas/v5.1.0/AAREADME.txt
+d3 1
+a3 1
+Version: 5.1.0
+d27 3
+a29 8
+Version 5.1.0 changes:
+  + Reconfigured the Save Menu, it is much more linear
+  + Support our new XML and CSV formats
+  + Split nedc_ann_eeg_tools_map_v01.txt into three different options for 
+    better flexibility
+  + Updated the EEG schema 
+  + Added a Map Menu which allows us to configure our map options similar to
+    the montage menu
+d57 2
+a58 2
+Through the Anaconda prompt, create a new environment and specify the proper
+python version:
+d60 2
+a61 1
+ $ conda create -n <my_environment_name> python=3.9
+d63 5
+a67 1
+Install a bash emulator that will allow running the annotation tool:
+d69 5
+a73 1
+ $ conda install m2-base
+d75 1
+a75 1
+Install the required packages:
+d77 1
+a77 6
+ $ conda install pyqt5
+ $ conda install pyqtgraph
+ $ conda install reportlab
+ $ conda install lxml
+ $ conda install scipy
+ $ conda install bs4
+d79 1
+a79 2
+The easiest way to run this is to change your current working directory
+to the root directory of the installation and execute the tool as follows:
+d81 1
+a81 2
+ $ cd <my_install_location>/nedc_eas/v5.1.0
+ $ ./bin/nedc_eas
+d83 3
+a85 2
+Once the software has been installed, you need to do the following things if
+you want to run this from any directory:
+d87 1
+a87 2
+ - set the environment variable NEDC_NFC to the root directory
+   of the installation:
+d89 6
+a94 1
+    $ export NEDC_NFC='<my_install_location>/nedc_eas/v5.1.0'
+d96 2
+a97 1
+ - put $NEDC_NFC/bin in your path:
+d99 1
+a99 3
+    $ export PATH=$PATH:$NEDC_NFC
+ 
+You should be able to type:
+d101 1
+a101 1
+ $ which nedc_eas
+d103 1
+a103 1
+and see the command. Then you can simply type:
+d105 1
+a105 1
+ $ nedc_eas
+@
+
+
+1.16
+log
+@updated.
+@
+text
+@d59 2
+a60 1
+For Window users, we recommend users install Anaconda in order to run a bash emulator.
+d62 1
+a62 1
+Through the Anaconda prompt create a new environment and specify the proper
+d64 1
+d68 1
+d72 1
+d82 1
+d91 2
+a92 1
+      $ export NEDC_NFC='<my_install_location>/nedc_eas/v5.1.0'
+d95 2
+a96 1
+      $ export PATH=$PATH:$NEDC_NFC
+d99 1
+d103 1
+d134 1
+d138 1
+a146 1
+
+@
+
+
+1.15
+log
+@made clarifications
+@
+text
+@d66 1
+a66 1
+ conda install m2-base
+d78 2
+a79 3
+
+$ cd <my_install_location>/nedc_eas/v5.1.0
+$ ./bin/nedc_eas
+d92 1
+a92 2
+
+$ which nedc_eas
+d95 1
+a95 1
+$ nedc_eas
+d111 2
+a112 3
+
+$ cd <my_install_location>/nedc_eas/v5.1.0
+$ ./bin/nedc_eas
+d125 1
+a125 2
+
+$ which nedc_eas
+d128 1
+a128 1
+$ nedc_eas
+@
+
+
+1.14
+log
+@updated.
+@
+text
+@d7 1
+d52 4
+a55 1
+These dependencies can be installed using pip:
+d57 1
+a57 6
+ pip install pyqt5
+ pip install pyqtgraph
+ pip install reportlab
+ pip install lxml
+ pip install scipy
+ pip install bs4
+d59 1
+a59 2
+For Mac users, since Mac OS X 10.8 comes with Python 2.7, you may 
+need to utilize pip3 when attempting to install dependencies:
+d61 3
+a63 6
+ pip3 install pyqt5
+ pip3 install pyqtgraph
+ pip3 install reportlab
+ pip3 install lxml
+ pip3 install scipy
+ pip3 install bs4
+d65 2
+a66 2
+There is a requirements.txt included in the release that helps you automate
+the process of updating your environment.
+d68 7
+a74 1
+C. USER'S GUIDE
+d79 2
+a80 2
+ cd <my_install_location>/nedc_eas/v5.1.0
+ ./bin/nedc_eas
+d86 2
+a87 1
+   of the installation (e.g., <my_install_location>/nedc_annotator/v5.1.0)
+d89 2
+a90 1
+ - put $NEDC_NFC/bin in your path
+d94 25
+a118 1
+ which nedc_annotator
+d120 3
+a122 1
+and see the command. Then you can simply type "nedc_eas".
+d124 4
+a127 2
+For Window users, you may want to install m2-base in order to be able to
+run bash:
+d129 1
+a129 1
+ conda install m2-base
+d131 2
+a132 1
+After that, you will be able to run basic bash commands.
+d140 1
+@
+
+
+1.13
+log
+@*** empty log message ***
+@
+text
+@d7 1
+a7 1
+(20220415) Release version 5.1.0
+d28 1
+a28 1
+  + Support the new NEDC XML and CSV format
+d31 1
+a31 1
+  + Updated the EEG Schema 
+d69 3
+@
+
+
+1.12
+log
+@updated.
+@
+text
+@d1 1
+a1 1
+File: nedc_eas/v5.0.5/AAREADME.txt
+d3 1
+a3 1
+Version: 5.0.5
+d7 1
+a7 1
+
+d26 8
+a33 1
+Version 5.0.5 includes some bug fixes.
+d75 1
+a75 1
+ cd <my_install_location>/nedc_eas/v5.0.5
+d82 1
+a82 1
+   of the installation (e.g., <my_install_location>/nedc_annotator/v5.0.2)
+@
+
+
+1.11
+log
+@*** empty log message ***
+@
+text
+@d1 1
+a1 1
+File: nedc_eas/v5.0.4/AAREADME.txt
+d3 1
+a3 1
+Version: 5.0.4
+d26 1
+a26 5
+Version 5.0.1 includes these enhancements:
+
+ o Removed ".rec" file extension support
+ o Supports ".csv", ".xml", "tse", and "lbl"  annotation file formats
+ o Updated to PyQtGraph v0.12.1.
+d68 1
+a68 1
+ cd <my_install_location>/nedc_eas/v5.0.4
+d97 1
+a97 1
+https://www.isip.piconepress.com/projects/tuh_eeg/downloads/nedc_eas/v5.0.4/videos/getting_started/getting_started_v00.mp4
+@
+
+
+1.10
+log
+@updated.
+@
+text
+@d29 1
+a29 1
+ o Supports ".csv" and ".xml" annotation file formats
+@
+
+
+1.9
+log
+@updated.
+@
+text
+@d101 1
+a101 1
+https://www.isip.piconepress.com/projects/tuh_eeg/downloads/nedc_eas/v5.0.4/videos/
+@
+
+
+1.8
+log
+@touched up.
+@
+text
+@d1 3
+a3 3
+File: nedc_annotator/v5.0.2/AAREADME.txt
+Tool: The NEDC EEG Annotation Tool
+Version: 5.0.2
+d8 1
+d36 1
+a36 1
+tested extensively on Windows and Mac machines running Python v3.7.x.
+d72 2
+a73 2
+ cd <my_install_location>/nedc_annotator/v5.0.2
+ ./bin/nedc_annotator
+d87 1
+a87 1
+and see the command. Then you can simply type "nedc_annotator".
+d101 1
+a101 1
+https://www.isip.piconepress.com/projects/tuh_eeg/downloads/nedc_annotator/v5.0.2/videos/
+@
+
+
+1.7
+log
+@updated.
+@
+text
+@d71 1
+a71 1
+ cd <my_install_location>
+d78 1
+a78 1
+   of the installation.
+@
+
+
+1.6
+log
+@*** empty log message ***
+@
+text
+@d1 1
+a1 1
+File: nedc_annotator/v5.0.1/_AAREADME.txt
+d3 1
+a3 1
+Version: 5.0.1
+d39 1
+a39 1
+ o Python 3.7.x (we recommend installing Anaconda)
+d42 1
+a42 1
+ o PyQtGraph: http://www.pyqtgraph.org/
+d68 8
+a75 1
+Once the software has been installed, you need to do the following things:
+d78 1
+a78 2
+   of the installation. By default, we set this to "pwd" if
+   you try to run this from the root directory of the install.
+d80 1
+a80 1
+ - put $NEDC_NFC/lib in your Python path
+d82 3
+a84 3
+ - (optional) put $NEDC_NFC/bin in your path
+ 
+ - execute the command:
+d86 1
+a86 1
+   $NEDC_NFC/bin/nedc_annotator
+d95 6
+a100 3
+After loading up the tool, click on open under file on the navigation bar and
+load up the edf file that you wish to annotate. Selecting an area on the
+loaded up edf file will give you the option of adding an annotation.
+@
+
+
+1.5
+log
+@changed NEDC_ANNOTATOR back to NEDC_NFC.
+@
+text
+@d74 2
+@
+
+
+1.4
+log
+@updated.
+@
+text
+@d70 1
+a70 1
+ - set the environment variable NEDC_ANNOTATOR to the root directory
+d74 1
+a74 1
+ - (optional) put $NEDC_ANNOTATOR/bin in your path
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d4 1
+a5 1
+----
+d9 1
+a9 1
+----
+d27 3
+a29 3
+ o Removed REC file extension support
+ o Supported CSV and XML annotation file
+ o Updated to the newest pyqtgraph
+d68 11
+a78 2
+Once the software has been installed, you should be able to execute the
+tool as follows:
+d80 2
+a81 1
+    bash run.sh
+d83 1
+a83 2
+For Mac users, they may need to modify run.sh with their associated python3
+command. Open run.sh and edit line 8.
+a84 3
+For Window users, you may want to install m2-base in order to be able to run bash.
+Run:
+    conda install m2-base
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d76 5
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d1 64
+a64 1
+# EEG Demo
+d66 1
+a66 1
+_Version 5.0.1_
+d68 2
+a69 44
+## What's new in this release?
+*Release date: 2021-05-29*
+- Removed REC file extension support
+- Supported CSV and XML annotation file
+- Updated to the newest pyqtgraph
+
+### Requirements
+- Python 3.7.x
+- PyQt5: https://www.riverbankcomputing.com/software/pyqt/download5
+- Numpy/SciPy: http://www.numpy.org/
+- PyQtGraph: http://www.pyqtgraph.org/
+- ReportLab: http://www.reportlab.com/software/
+- lxml: https://lxml.de
+
+Please note that the recommended way to deal with dependencies is to 
+install anaconda:
+
+https://www.continuum.io/downloads
+
+This should take care of all dependencies except for pyqt5, which can 
+be installed like so:
+
+    conda install -c anaconda pyqt
+    conda install pyqtgraph
+    conda install reportlab
+    conda install lxml
+    
+Another method of installing the dependencies can be done like so:
+
+    pip install pyqt5
+    pip install pyqtgraph
+    pip install reportlab
+    pip install lxml
+    
+For Mac users, since Mac OS X 10.8 comes with Python 2.7, they may need to
+utilize pip3 and python3 when attempting to install dependencies and run
+the demo.
+
+    pip3 install pyqt5
+    pip3 install pyqtgraph
+    pip3 install reportlab
+    
+### How to Run Demo:
+Run run.sh with bash
+d74 1
+a74 1
+command. Open run.sh and edit line 8
+d76 12
+a87 3
+### Directories
+src: This directory includes all Python codes for running GUI, reading edf
+files, and reading EEG events from annotation files.
+@

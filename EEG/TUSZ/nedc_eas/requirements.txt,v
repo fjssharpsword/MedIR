@@ -1,0 +1,30 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.1
+date	2022.09.13.13.34.41;	author tun67934;	state Exp;
+branches;
+next	;
+
+
+desc
+@init
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@lxml==4.8.0
+numpy==1.22.2
+PyQt5==5.15.4
+pyqtgraph==0.12.3
+reportlab==3.5.68
+scipy==1.8.0
+@

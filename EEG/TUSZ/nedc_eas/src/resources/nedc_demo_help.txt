@@ -1,0 +1,14 @@
+name: main.py
+synopsis: python main.py [options] file(s)
+descr: run GUI, read edf files, and read EEG events from annotation files
+
+options:
+ -m, --mtg: montage file
+
+arguments:
+ file(s): individual edf file or lists of edf files
+
+example:
+ python main.py --mtg ./defaults/01_tcp_ref_montage.txt ~/01_gnsz.edf 
+
+  reads 01_gnsz.edf file with 01_tcp_ref_montage montage

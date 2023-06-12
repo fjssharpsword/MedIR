@@ -1,0 +1,23 @@
+[Montage]
+montage =  0, Fp1-F7: Fp1 -- F7
+montage =  1, F7-T3:  F7 --  T3
+montage =  2, T3-T5:  T3 --  T5
+montage =  3, T5-O1:  T5 --  O1
+montage =  4, Fp2-F8: Fp2 -- F8
+montage =  5, F8-T4:  F8 -- T4
+montage =  6, T4-T6:  T4 -- T6
+montage =  7, T6-O2:  T6 -- O2
+montage =  8, A1-T3:  A1 -- T3
+montage =  9, T3-C3:  T3 -- C3
+montage = 10, C3-Cz:  C3 -- Cz
+montage = 11, Cz-C4:  Cz -- C4
+montage = 12, C4-T4:  C4 -- T4
+montage = 13, T4-A2:  T4 -- A2
+montage = 14, Fp1-F3: Fp1 -- F3
+montage = 15, F3-C3:  F3 -- C3
+montage = 16, C3-P3:  C3 -- P3
+montage = 17, P3-O1:  P3 -- O1
+montage = 18, Fp2-F4: Fp2 -- F4
+montage = 19, F4-C4:  F4 -- C4 
+montage = 20, C4-P4:  C4 -- P4
+montage = 21, P4-O2:  P4 -- O2
