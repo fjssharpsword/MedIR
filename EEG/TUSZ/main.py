@@ -103,7 +103,9 @@ def TUSZ_Train_Eval(PATH_TO_DST_ROOT, CKPT_PATH, sym_sz):
     #log_writer = SummaryWriter('/data/tmpexec/tb_log')
    
     print('********************Train and validation********************')
-    X, y = np.load(PATH_TO_DST_ROOT+'tusz_tr_eeg.npy'), np.load(PATH_TO_DST_ROOT+'tusz_tr_lbl.npy')
+    X_tr, y_tr = np.load(PATH_TO_DST_ROOT+'tusz_te_eeg.npy'), np.load(PATH_TO_DST_ROOT+'tusz_te_lbl.npy')
+    X_te, y_te = np.load(PATH_TO_DST_ROOT+'tusz_ev_eeg.npy'), np.load(PATH_TO_DST_ROOT+'tusz_ev_lbl.npy')
+    X, y = np.vstack((X_tr,X_te)), np.append(y_tr,y_te)
     print('\r Sample number: {}'.format(len(y)))
     dataset = TensorDataset(torch.FloatTensor(X), torch.LongTensor(y))
     kf_set = KFold(n_splits=10,shuffle=True).split(X, y)

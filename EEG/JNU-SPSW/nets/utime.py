@@ -114,7 +114,7 @@ class Encoder(nn.Module):
                 kernel_size=self.kernel_size
             ),
         )
-        self.sa_layer = Spatial_layer()
+        #self.sa_layer = Spatial_layer()
 
     def forward(self, x):
         shortcuts = []
@@ -122,7 +122,7 @@ class Encoder(nn.Module):
             z = layer(x)
             shortcuts.append(z)
             x = maxpool(z)
-            x = self.sa_layer(x) #layer added by fjs
+            #x = self.sa_layer(x) #layer added by fjs
         # Bottom part
         encoded = self.bottom(x)
 

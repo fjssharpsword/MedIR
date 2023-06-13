@@ -37,7 +37,7 @@ class SPSWInstance:
         #    raw_np.set_eeg_reference(ref_channels=['EEG CZ-LE'])
 
         #filter
-        raw_np.filter(l_freq=1, h_freq=70) 
+        raw_np.filter(l_freq=1, h_freq=70)
         #raw_np.notch_filter(freqs=50)
 
         #downsampling

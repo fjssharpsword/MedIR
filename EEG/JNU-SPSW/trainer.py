@@ -104,7 +104,7 @@ def Train_Eval():
                 best_acc = te_acc
                 best_f1 = te_f1
                 if len(dice_list) == 0 or (len(dice_list) > 0 and best_dice > np.max(dice_list)):
-                    torch.save(model.state_dict(), '/data/pycode/MedIR/EEG/JNU-SPSW/ckpts/sa_utime.pkl')
+                    torch.save(model.state_dict(), '/data/pycode/MedIR/EEG/JNU-SPSW/ckpts/utime.pkl')
                     print(' Epoch: {} model has been already save!'.format(epoch+1))
        
         dice_list.append(best_dice)
@@ -124,4 +124,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    #nohup python3 -u trainer.py >> /data/tmpexec/tb_log/sa_utime.log 2>&1 &
+    #nohup python3 -u trainer.py >> /data/tmpexec/tb_log/utime.log 2>&1 &
