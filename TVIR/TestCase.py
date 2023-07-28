@@ -5,6 +5,27 @@ import numpy as np
 from paddleocr import PaddleOCR, draw_ocr
 import imutils
 import colorsys
+import matplotlib.pyplot as plt
+
+def CaptureFocus():
+    root = '/data/pycode/MedIR/TVIR/imgs/'
+    image = cv2.imread(root+"focus_icon.png", 0)
+    
+    retval, img_global = cv2.threshold(image,130,255,cv2.THRESH_BINARY)
+
+    img_ada_mean=cv2.adaptiveThreshold(image,255,cv2.ADAPTIVE_THRESH_MEAN_C,cv2.THRESH_BINARY,15,3)
+    img_ada_gaussian=cv2.adaptiveThreshold(image,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,cv2.THRESH_BINARY,15,3)
+
+    imgs=[image,img_global,img_ada_mean,img_ada_gaussian]
+    titles=['Original Image','Global Thresholding(130)','Adaptive Mean','Adaptive Guassian']
+
+    for i in range(4):
+        plt.subplot(2,2,i+1)
+        plt.imshow(imgs[i],'gray')
+        plt.title(titles[i])
+        plt.xticks([])
+        plt.yticks([])
+    plt.savefig('/data/pycode/MedIR/TVIR/imgs/focus_rec.png', dpi=300, bbox_inches='tight')
 
 
 def StripeDetector():
@@ -149,7 +170,8 @@ def main():
     #ShapeDetector()
     #LuminanceAssert()
     #Solidcolor()
-    StripeDetector()
+    #StripeDetector()
+    CaptureFocus()
 
 if __name__ == "__main__":
     main()
